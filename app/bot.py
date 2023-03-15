@@ -1,10 +1,12 @@
-import discord
 from discord.ext import commands
 from bs4 import BeautifulSoup
 import os
 import requests
 import youtube_dl
 import subprocess
+
+AUDIO_FILENAME = "audio.mp3"
+HTML_PARSER = "html.parser"
 
 bot = commands.Bot(command_prefix="!")
 
@@ -37,13 +39,12 @@ async def music(ctx, *, query):
         best_quality = get_best_quality(soundcloud_results)
         download_audio(best_quality)
         play_audio()
-        return
 
 
 def search_youtube(query):
     url = f"https://www.youtube.com/results?search_query={query}"
     page = requests.get(url)
-    soup = BeautifulSoup(page.content, "html.parser")
+    soup = BeautifulSoup(page.content, HTML_PARSER)
     videos = soup.find_all("a", class_="yt-uix-tile-link")
     return [f"https://www.youtube.com{video['href']}" for video in videos]
 
@@ -51,7 +52,7 @@ def search_youtube(query):
 def search_bandcamp(query):
     url = f"https://bandcamp.com/search?q={query}"
     page = requests.get(url)
-    soup = BeautifulSoup(page.content, "html.parser")
+    soup = BeautifulSoup(page.content, HTML_PARSER)
     albums = soup.find_all("li", class_="searchresult")
     if not albums:
         return None
@@ -62,7 +63,7 @@ def search_bandcamp(query):
 def search_soundcloud(query):
     url = f"https://soundcloud.com/search?q={query}"
     page = requests.get(url)
-    soup = BeautifulSoup(page.content, "html.parser")
+    soup = BeautifulSoup(page.content, HTML_PARSER)
     tracks = soup.find_all("h2", class_="trackItem__heading")
     return [f"https://soundcloud.com{track.find('a')['href']}" for track in tracks]
 
@@ -88,7 +89,7 @@ def download_video(url):
             "--audio-format",
             "mp3",
             "-o",
-            "audio.mp3",
+            AUDIO_FILENAME,
             url,
         ]
     )
@@ -96,16 +97,16 @@ def download_video(url):
 
 def download_bandcamp(url):
     subprocess.call(
-        ["youtube-dl", "-x", "--audio-format", "mp3", "-o", "audio.mp3", url]
+        ["youtube-dl", "-x", "--audio-format", "mp3", "-o", AUDIO_FILENAME, url]
     )
 
 
 def download_audio(url):
-    subprocess.call(["wget", "-O", "audio.mp3", url])
+    subprocess.call(["wget", "-O", AUDIO_FILENAME, url])
 
 
 def play_audio():
-    subprocess.call(["ffplay", "-nodisp", "-autoexit", "-i", "audio.mp3"])
+    subprocess.call(["ffplay", "-nodisp", "-autoexit", "-i", AUDIO_FILENAME])
 
 
-bot.run(os.environ.get("DISCORD_TOKEN"))
+bot.run(os.environ.get("DISCORD_BOT_TOKEN"))

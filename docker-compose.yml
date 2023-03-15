@@ -1,0 +1,8 @@
+version: '3'
+services:
+  my-bot:
+    build:
+      context: .
+    environment:
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+    restart: always
