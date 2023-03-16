@@ -4,5 +4,5 @@ services:
     build:
       context: .
     environment:
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?no DISCORD_BOT_TOKEN set}
     restart: always

@@ -1,5 +1,8 @@
-discord.py
+asyncio
 beautifulsoup4
+discord.py
 lxml
-youtube-dl
+PyNaCl
+requests
 wget
+yt-dlp

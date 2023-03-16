@@ -1,112 +1,52 @@
+import discord
 from discord.ext import commands
-from bs4 import BeautifulSoup
+import asyncio
 import os
-import requests
-import youtube_dl
 import subprocess
+
+FFMPEG_OPTIONS = {
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
+    'options': '-vn -loglevel warning -hide_banner'
+}
+
 
 AUDIO_FILENAME = "audio.mp3"
 HTML_PARSER = "html.parser"
-
-bot = commands.Bot(command_prefix="!")
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="!!", intents=intents)
+voice_client = None
 
 
 @bot.command()
-async def music(ctx, *, query):
-    await ctx.send(f"Searching for {query}...")
-
-    # Search on YouTube
-    youtube_results = search_youtube(query)
-    if youtube_results:
-        await ctx.send("Found on YouTube!")
-        best_quality = get_best_quality(youtube_results)
-        download_video(best_quality)
-        play_audio()
+async def play(ctx, *args):
+    query = ' '.join(args)
+    print(query, flush=True)
+    global voice_client
+    if not ctx.author.voice:
+        await ctx.send('You are not in a voice channel')
         return
+    if voice_client and voice_client.is_connected():
+        await voice_client.move_to(ctx.author.voice.channel)
+    else:
+        voice_client = await ctx.author.voice.channel.connect()
+    async with ctx.typing():
+        try:
+            cmd = f'yt-dlp -f bestaudio -g "ytsearch:{query}"'
+            process = await asyncio.create_subprocess_shell(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = await process.communicate()
+            if process.returncode != 0:
+                raise Exception(f'yt-dlp returned non-zero exit code {process.returncode}')
+            source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(stdout.decode().strip(), **FFMPEG_OPTIONS))
+        except Exception as e:
+            await ctx.send(f'Error: {str(e)}')
+            return
+        ctx.voice_client.play(source)
+        await ctx.send(f'Now playing: {query}')
 
-    # Search on Bandcamp
-    bandcamp_results = search_bandcamp(query)
-    if bandcamp_results:
-        await ctx.send("Found on Bandcamp!")
-        download_bandcamp(bandcamp_results)
-        play_audio()
-        return
-
-    # Search on SoundCloud
-    soundcloud_results = search_soundcloud(query)
-    if soundcloud_results:
-        await ctx.send("Found on SoundCloud!")
-        best_quality = get_best_quality(soundcloud_results)
-        download_audio(best_quality)
-        play_audio()
-
-
-def search_youtube(query):
-    url = f"https://www.youtube.com/results?search_query={query}"
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, HTML_PARSER)
-    videos = soup.find_all("a", class_="yt-uix-tile-link")
-    return [f"https://www.youtube.com{video['href']}" for video in videos]
+@bot.command(name='stop')
+async def stop(ctx):
+    await ctx.voice_client.disconnect()
 
 
-def search_bandcamp(query):
-    url = f"https://bandcamp.com/search?q={query}"
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, HTML_PARSER)
-    albums = soup.find_all("li", class_="searchresult")
-    if not albums:
-        return None
-    album_url = albums[0].find("a")["href"]
-    return f"https://bandcamp.com{album_url}"
-
-
-def search_soundcloud(query):
-    url = f"https://soundcloud.com/search?q={query}"
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, HTML_PARSER)
-    tracks = soup.find_all("h2", class_="trackItem__heading")
-    return [f"https://soundcloud.com{track.find('a')['href']}" for track in tracks]
-
-
-def get_best_quality(urls):
-    ydl = youtube_dl.YoutubeDL({"quiet": True})
-    for url in urls:
-        with ydl:
-            info = ydl.extract_info(url, download=False)
-        formats = info["formats"]
-        best = max(formats, key=lambda f: f.get("filesize", 0))
-        if best["format_id"].startswith("audio"):
-            return best["url"]
-    return None
-
-
-def download_video(url):
-    subprocess.call(
-        [
-            "youtube-dl",
-            "-f",
-            "bestaudio",
-            "--audio-format",
-            "mp3",
-            "-o",
-            AUDIO_FILENAME,
-            url,
-        ]
-    )
-
-
-def download_bandcamp(url):
-    subprocess.call(
-        ["youtube-dl", "-x", "--audio-format", "mp3", "-o", AUDIO_FILENAME, url]
-    )
-
-
-def download_audio(url):
-    subprocess.call(["wget", "-O", AUDIO_FILENAME, url])
-
-
-def play_audio():
-    subprocess.call(["ffplay", "-nodisp", "-autoexit", "-i", AUDIO_FILENAME])
-
-
-bot.run(os.environ.get("DISCORD_BOT_TOKEN"))
+bot.run(os.getenv("DISCORD_BOT_TOKEN"))
