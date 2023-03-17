@@ -33,7 +33,11 @@ async def play(ctx, *args):
     if voice_client and voice_client.is_connected():
         await ctx.send(f"Queued {query}")
         return
-    voice_client = await ctx.author.voice.channel.connect()
+    voice_channel = ctx.author.voice.channel
+    voice_client = await voice_channel.connect()
+    if not voice_client:
+        await ctx.send("Failed to connect to the voice channel")
+        return
     asyncio.run_coroutine_threadsafe(play_next_song(ctx), bot.loop)
 
 
