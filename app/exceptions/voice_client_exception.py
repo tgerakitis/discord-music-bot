@@ -1,0 +1,2 @@
+class VoiceClientException(Exception): 
+    pass

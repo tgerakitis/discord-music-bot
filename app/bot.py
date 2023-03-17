@@ -6,6 +6,7 @@ import discord
 from discord.ext import commands
 
 from exceptions.youtube_exception import YoutubeException
+from exceptions.voice_client_exception import VoiceClientException
 
 
 AUDIO_FILENAME = "audio.mp3"
@@ -33,13 +34,8 @@ async def play(ctx, *args):
     if voice_client and voice_client.is_connected():
         await ctx.send(f"Queued {query}")
         return
-    voice_channel = ctx.author.voice.channel
-    voice_client = await voice_channel.connect()
-    if not voice_client:
-        await ctx.send("Failed to connect to the voice channel")
-        return
+    await connect_voice_client(ctx)
     asyncio.run_coroutine_threadsafe(play_next_song(ctx), bot.loop)
-
 
 @bot.command()
 async def stop(ctx):
@@ -67,10 +63,14 @@ async def skip(ctx):
 
 async def play_next_song(ctx):
     global voice_client
+    if voice_client == None:
+        return
     if len(playlist) <= 0:
         await voice_client.disconnect()
         voice_client = None
         return
+    if voice_client == None:
+        connect_voice_client(ctx)
     query = playlist.pop(0)
     async with ctx.typing():
         try:
@@ -97,5 +97,10 @@ async def play_next_song(ctx):
         )
         await ctx.send(f"Now playing: {query}")
 
+async def connect_voice_client(ctx):
+    voice_channel = ctx.author.voice.channel
+    voice_client = await voice_channel.connect()
+    if not voice_client:
+        raise VoiceClientException("Failed to connect to the voice channel")
 
 bot.run(os.getenv("DISCORD_BOT_TOKEN"))
