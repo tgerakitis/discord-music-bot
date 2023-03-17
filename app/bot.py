@@ -63,9 +63,9 @@ async def skip(ctx):
 
 async def play_next_song(ctx):
     global voice_client
-    if voice_client == None:
-        return
     if len(playlist) <= 0:
+        if voice_client == None:
+            return
         await voice_client.disconnect()
         voice_client = None
         return
