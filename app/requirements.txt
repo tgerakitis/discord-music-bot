@@ -1,5 +1,5 @@
+asyncio
+debugpy
 discord.py
-beautifulsoup4
-lxml
-youtube-dl
-wget
+PyNaCl
+yt-dlp

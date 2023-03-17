@@ -1,8 +1,13 @@
 version: '3'
 services:
-  my-bot:
+  discord-music-bot:
     build:
       context: .
     environment:
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?no DISCORD_BOT_TOKEN set}
+    volumes:
+      - "./app:/app"
+    command: [ "debugpy" ]
+    ports:
+      - 5678:5678
     restart: always

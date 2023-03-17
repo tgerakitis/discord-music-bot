@@ -1,112 +1,86 @@
-from discord.ext import commands
-from bs4 import BeautifulSoup
 import os
-import requests
-import youtube_dl
 import subprocess
 
+import asyncio
+import discord
+from discord.ext import commands
+
+from exceptions.youtube_exception import YoutubeException
+
+
 AUDIO_FILENAME = "audio.mp3"
+FFMPEG_OPTIONS = {
+    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+    "options": "-vn -loglevel warning -hide_banner",
+}
 HTML_PARSER = "html.parser"
 
-bot = commands.Bot(command_prefix="!")
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="!!", intents=intents)
+voice_client = None
+playlist = []
 
 
 @bot.command()
-async def music(ctx, *, query):
-    await ctx.send(f"Searching for {query}...")
-
-    # Search on YouTube
-    youtube_results = search_youtube(query)
-    if youtube_results:
-        await ctx.send("Found on YouTube!")
-        best_quality = get_best_quality(youtube_results)
-        download_video(best_quality)
-        play_audio()
+async def play(ctx, *args):
+    global voice_client, playlist
+    query = " ".join(args)
+    if not ctx.author.voice:
+        await ctx.send("You are not in a voice channel")
         return
-
-    # Search on Bandcamp
-    bandcamp_results = search_bandcamp(query)
-    if bandcamp_results:
-        await ctx.send("Found on Bandcamp!")
-        download_bandcamp(bandcamp_results)
-        play_audio()
+    playlist.append(query)
+    if voice_client and voice_client.is_connected():
+        await ctx.send(f"Queued {query}")
         return
-
-    # Search on SoundCloud
-    soundcloud_results = search_soundcloud(query)
-    if soundcloud_results:
-        await ctx.send("Found on SoundCloud!")
-        best_quality = get_best_quality(soundcloud_results)
-        download_audio(best_quality)
-        play_audio()
+    voice_client = await ctx.author.voice.channel.connect()
+    asyncio.run_coroutine_threadsafe(play_next_song(ctx), bot.loop)
 
 
-def search_youtube(query):
-    url = f"https://www.youtube.com/results?search_query={query}"
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, HTML_PARSER)
-    videos = soup.find_all("a", class_="yt-uix-tile-link")
-    return [f"https://www.youtube.com{video['href']}" for video in videos]
+@bot.command()
+async def stop(ctx):
+    global voice_client, playlist
+    playlist = []
+    if not voice_client or not voice_client.is_connected():
+        await ctx.send("Not currently playing anything.")
+        return
+    voice_client.stop()
+    await voice_client.disconnect()
+    voice_client = None
+    await ctx.send("Stopped playback and disconnected from voice channel.")
 
 
-def search_bandcamp(query):
-    url = f"https://bandcamp.com/search?q={query}"
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, HTML_PARSER)
-    albums = soup.find_all("li", class_="searchresult")
-    if not albums:
-        return None
-    album_url = albums[0].find("a")["href"]
-    return f"https://bandcamp.com{album_url}"
+async def play_next_song(ctx):
+    global voice_client
+    if len(playlist) <= 0:
+        await ctx.voice_client.disconnect()
+        voice_client = None
+        return
+    query = playlist.pop(0)
+    async with ctx.typing():
+        try:
+            cmd = f'yt-dlp -f bestaudio -g "ytsearch:{query}"'
+            process = await asyncio.create_subprocess_shell(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            if process.returncode != 0:
+                raise YoutubeException(
+                    f"yt-dlp returned non-zero exit code {process.returncode}"
+                )
+            source = discord.PCMVolumeTransformer(
+                discord.FFmpegPCMAudio(stdout.decode().strip(), **FFMPEG_OPTIONS)
+            )
+        except Exception as e:
+            await ctx.send(f"Error: {str(e)}")
+            return
+        voice_client.play(
+            source,
+            after=lambda e: asyncio.run_coroutine_threadsafe(
+                play_next_song(ctx), bot.loop
+            ).result(),
+        )
+        await ctx.send(f"Now playing: {query}")
 
 
-def search_soundcloud(query):
-    url = f"https://soundcloud.com/search?q={query}"
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, HTML_PARSER)
-    tracks = soup.find_all("h2", class_="trackItem__heading")
-    return [f"https://soundcloud.com{track.find('a')['href']}" for track in tracks]
-
-
-def get_best_quality(urls):
-    ydl = youtube_dl.YoutubeDL({"quiet": True})
-    for url in urls:
-        with ydl:
-            info = ydl.extract_info(url, download=False)
-        formats = info["formats"]
-        best = max(formats, key=lambda f: f.get("filesize", 0))
-        if best["format_id"].startswith("audio"):
-            return best["url"]
-    return None
-
-
-def download_video(url):
-    subprocess.call(
-        [
-            "youtube-dl",
-            "-f",
-            "bestaudio",
-            "--audio-format",
-            "mp3",
-            "-o",
-            AUDIO_FILENAME,
-            url,
-        ]
-    )
-
-
-def download_bandcamp(url):
-    subprocess.call(
-        ["youtube-dl", "-x", "--audio-format", "mp3", "-o", AUDIO_FILENAME, url]
-    )
-
-
-def download_audio(url):
-    subprocess.call(["wget", "-O", AUDIO_FILENAME, url])
-
-
-def play_audio():
-    subprocess.call(["ffplay", "-nodisp", "-autoexit", "-i", AUDIO_FILENAME])
-
-
-bot.run(os.environ.get("DISCORD_BOT_TOKEN"))
+bot.run(os.getenv("DISCORD_BOT_TOKEN"))
