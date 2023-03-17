@@ -54,6 +54,17 @@ async def stop(ctx):
     await ctx.send("Stopped playback and disconnected from voice channel.")
 
 
+@bot.command()
+async def skip(ctx):
+    global voice_client, playlist
+    if not voice_client or not voice_client.is_connected():
+        await ctx.send("Not currently playing anything.")
+        return
+    voice_client.stop()
+    await ctx.send("Skipping to the next song.")
+    await play_next_song(ctx)
+
+
 async def play_next_song(ctx):
     global voice_client
     if len(playlist) <= 0:
