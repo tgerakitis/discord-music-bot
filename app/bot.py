@@ -53,7 +53,7 @@ async def stop(ctx):
 async def play_next_song(ctx):
     global voice_client
     if len(playlist) <= 0:
-        await ctx.voice_client.disconnect()
+        await voice_client.disconnect()
         voice_client = None
         return
     query = playlist.pop(0)
