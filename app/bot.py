@@ -18,21 +18,45 @@ HTML_PARSER = "html.parser"
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!!", intents=intents)
-song_queue = []
 voice_client = None
+playlist = []
 
 
 @bot.command()
 async def play(ctx, *args):
+    global voice_client, playlist
     query = " ".join(args)
-    global voice_client
     if not ctx.author.voice:
         await ctx.send("You are not in a voice channel")
         return
+    playlist.append(query)
     if voice_client and voice_client.is_connected():
-        await voice_client.move_to(ctx.author.voice.channel)
-    else:
-        voice_client = await ctx.author.voice.channel.connect()
+        await ctx.send(f"Queued {query}")
+        return
+    voice_client = await ctx.author.voice.channel.connect()
+    asyncio.run_coroutine_threadsafe(play_next_song(ctx), bot.loop)
+
+
+@bot.command()
+async def stop(ctx):
+    global voice_client, playlist
+    playlist = []
+    if not voice_client or not voice_client.is_connected():
+        await ctx.send("Not currently playing anything.")
+        return
+    voice_client.stop()
+    await voice_client.disconnect()
+    voice_client = None
+    await ctx.send("Stopped playback and disconnected from voice channel.")
+
+
+async def play_next_song(ctx):
+    global voice_client
+    if len(playlist) <= 0:
+        await ctx.voice_client.disconnect()
+        voice_client = None
+        return
+    query = playlist.pop(0)
     async with ctx.typing():
         try:
             cmd = f'yt-dlp -f bestaudio -g "ytsearch:{query}"'
@@ -50,31 +74,13 @@ async def play(ctx, *args):
         except Exception as e:
             await ctx.send(f"Error: {str(e)}")
             return
-        song_queue.append((source, query))
-        if len(song_queue) == 1:
-            # If the queue was previously empty, play the first song
-            play_next_song(ctx)
-        else:
-            await ctx.send(f"Added {query} to the queue")
-
-
-@bot.command()
-async def stop(ctx):
-    global voice_client, song_queue
-    voice_client.stop()
-    song_queue = []
-    await voice_client.disconnect()
-
-
-def play_next_song(ctx):
-    global song_queue
-    if len(song_queue) > 0:
-        source, query = song_queue[0]
-        voice_client.play(source, after=lambda e: play_next_song(ctx))
-        song_queue = song_queue[1:]
-        ctx.send(f"Now playing: {query}")
-    else:
-        voice_client.stop()
+        voice_client.play(
+            source,
+            after=lambda e: asyncio.run_coroutine_threadsafe(
+                play_next_song(ctx), bot.loop
+            ).result(),
+        )
+        await ctx.send(f"Now playing: {query}")
 
 
 bot.run(os.getenv("DISCORD_BOT_TOKEN"))
