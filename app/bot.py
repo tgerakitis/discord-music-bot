@@ -98,6 +98,9 @@ async def play_next_song(ctx):
         await ctx.send(f"Now playing: {query}")
 
 async def connect_voice_client(ctx):
+    global voice_client
+    if voice_client and voice_client.is_connected():
+        return
     voice_channel = ctx.author.voice.channel
     voice_client = await voice_channel.connect()
     if not voice_client:
