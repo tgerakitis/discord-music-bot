@@ -3,13 +3,12 @@ FROM python:3.10-slim-buster
 WORKDIR /app
 
 RUN apt update \
-    && apt install -yf ffmpeg wget \
-    && wget https://yt-dl.org/downloads/latest/youtube-dl -O /usr/local/bin/youtube-dl \
-    && chmod a+rx /usr/local/bin/youtube-dl
+    && apt install -yf ffmpeg
 
-COPY ./app/requirements.txt ./requirements.txt
+COPY ./app/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./app ./
+COPY ./app /app/
 
-CMD [ "python", "./bot.py" ]
+ENTRYPOINT [ "entrypoint.sh" ]
+CMD [ "bot.py" ]
