@@ -1,8 +1,5 @@
 asyncio
-beautifulsoup4
+debugpy
 discord.py
-lxml
 PyNaCl
-requests
-wget
 yt-dlp

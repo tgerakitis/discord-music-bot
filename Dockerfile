@@ -10,5 +10,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./app /app/
 
-ENTRYPOINT [ "entrypoint.sh" ]
+ENTRYPOINT [ "/app/entrypoint.sh" ]
 CMD [ "bot.py" ]
