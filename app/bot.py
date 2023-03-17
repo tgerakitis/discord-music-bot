@@ -25,7 +25,7 @@ playlist = []
 
 @bot.command()
 async def play(ctx, *args):
-    global voice_client, playlist
+    global playlist, voice_client
     query = " ".join(args)
     if not ctx.author.voice:
         await ctx.send("You are not in a voice channel")
@@ -37,9 +37,10 @@ async def play(ctx, *args):
     await connect_voice_client(ctx)
     asyncio.run_coroutine_threadsafe(play_next_song(ctx), bot.loop)
 
+
 @bot.command()
 async def stop(ctx):
-    global voice_client, playlist
+    global playlist, voice_client
     playlist = []
     if not voice_client or not voice_client.is_connected():
         await ctx.send("Not currently playing anything.")
@@ -52,7 +53,7 @@ async def stop(ctx):
 
 @bot.command()
 async def skip(ctx):
-    global voice_client, playlist
+    global playlist, voice_client
     if not voice_client or not voice_client.is_connected():
         await ctx.send("Not currently playing anything.")
         return
@@ -62,7 +63,7 @@ async def skip(ctx):
 
 
 async def play_next_song(ctx):
-    global voice_client
+    global playlist, voice_client
     if len(playlist) <= 0:
         if voice_client == None:
             return
@@ -97,6 +98,7 @@ async def play_next_song(ctx):
         )
         await ctx.send(f"Now playing: {query}")
 
+
 async def connect_voice_client(ctx):
     global voice_client
     if voice_client and voice_client.is_connected():
@@ -105,5 +107,6 @@ async def connect_voice_client(ctx):
     voice_client = await voice_channel.connect()
     if not voice_client:
         raise VoiceClientException("Failed to connect to the voice channel")
+
 
 bot.run(os.getenv("DISCORD_BOT_TOKEN"))
