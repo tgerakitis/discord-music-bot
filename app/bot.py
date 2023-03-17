@@ -39,6 +39,12 @@ async def play(ctx, *args):
 
 
 @bot.command()
+async def q(ctx):
+    global playlist
+    await ctx.send("Playlist:\n" + "\n* ".join(playlist))
+
+
+@bot.command()
 async def stop(ctx):
     global playlist, voice_client
     playlist = []
