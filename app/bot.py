@@ -18,13 +18,13 @@ HTML_PARSER = "html.parser"
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!!", intents=intents)
+song_queue = []
 voice_client = None
 
 
 @bot.command()
 async def play(ctx, *args):
     query = " ".join(args)
-    print("hui", flush=True)
     global voice_client
     if not ctx.author.voice:
         await ctx.send("You are not in a voice channel")
@@ -50,12 +50,31 @@ async def play(ctx, *args):
         except Exception as e:
             await ctx.send(f"Error: {str(e)}")
             return
-        ctx.voice_client.play(source)
-        await ctx.send(f"Now playing: {query}")
+        song_queue.append((source, query))
+        if len(song_queue) == 1:
+            # If the queue was previously empty, play the first song
+            play_next_song(ctx)
+        else:
+            await ctx.send(f"Added {query} to the queue")
 
 
 @bot.command()
 async def stop(ctx):
-    await ctx.voice_client.disconnect()
+    global voice_client, song_queue
+    voice_client.stop()
+    song_queue = []
+    await voice_client.disconnect()
+
+
+def play_next_song(ctx):
+    global song_queue
+    if len(song_queue) > 0:
+        source, query = song_queue[0]
+        voice_client.play(source, after=lambda e: play_next_song(ctx))
+        song_queue = song_queue[1:]
+        ctx.send(f"Now playing: {query}")
+    else:
+        voice_client.stop()
+
 
 bot.run(os.getenv("DISCORD_BOT_TOKEN"))
