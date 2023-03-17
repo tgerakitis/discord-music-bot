@@ -65,6 +65,7 @@ async def skip(ctx):
 async def play_next_song(ctx):
     global playlist, voice_client
     if len(playlist) <= 0:
+        await ctx.send("Playlist empty, disconnecting")
         if voice_client == None:
             return
         await voice_client.disconnect()
