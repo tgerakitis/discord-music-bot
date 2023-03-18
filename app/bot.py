@@ -41,7 +41,7 @@ async def play(ctx, *args):
 @bot.command()
 async def q(ctx):
     global playlist
-    await ctx.send("Playlist:\n" + "\n* ".join(playlist))
+    await ctx.send("Playlist:\n* " + "\n* ".join(playlist))
 
 
 @bot.command()
@@ -65,7 +65,6 @@ async def skip(ctx):
         return
     voice_client.stop()
     await ctx.send("Skipping to the next song.")
-    await play_next_song(ctx)
 
 
 async def play_next_song(ctx):
