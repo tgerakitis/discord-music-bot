@@ -43,6 +43,10 @@ async def play(ctx, *args):
 @bot.command(aliases=["queue", "playlist"])
 async def q(ctx):
     global playlist
+    if len(playlist) <= 0:
+        await ctx.send(
+            "🙉 the playlist is **EMPTY** �🙉�😭 - fillup **NOW** 🎶🎵🎼🎹🎧🎷🎺🎸🎻📻🪕🎚ff!! "
+        )
     list_items = []
     for (i, title) in enumerate([song[KEY_TITLE] for song in playlist], 1):
         list_items.append(f"{i}. {title}")
