@@ -20,12 +20,12 @@ HTML_PARSER = "html.parser"
 KEY_TITLE = "title"
 KEY_URL = "url"
 
+playlist = []
+voice_client = None
+
 
 class MusicCommands(commands.Cog):
     """All relevant music commands"""
-
-    playlist = []
-    voice_client = None
 
     def __init__(self, client):
         self.client = client
@@ -37,7 +37,9 @@ class MusicCommands(commands.Cog):
             await ctx.send("You are not in a voice channel")
             return
         await self.add_song_to_playlist(ctx, " ".join(args))
-        if ():
+        if (await self.get_voice_client()) and (
+            await self.get_voice_client()
+        ).is_connected():
             return
         await self.connect_voice_client(ctx)
         asyncio.run_coroutine_threadsafe(self.play_next_song(ctx), self.client.loop)
@@ -45,36 +47,37 @@ class MusicCommands(commands.Cog):
     async def is_playing(self, ctx):
         """Helper to check if something is currently plaing"""
         return (
-            self.voice_client
-            and self.voice_client.is_connected()
-            and self.voice_client.is_playing()
+            (await self.get_voice_client())
+            and (await self.get_voice_client()).is_connected()
+            and (await self.get_voice_client()).is_playing()
         )
 
     @commands.command(aliases=["q", "playlist", "list"])
     async def queue(self, ctx):
         """Render current queue"""
-        if len(self.playlist) <= 0:
+        if len((await self.get_playlist())) <= 0:
             await ctx.send(
-                "🙉 the self.playlist is **EMPTY** 😭 - fill it up **NOW**"
+                "🙉 the (await self.get_playlist()) is **EMPTY** 😭 - fill it up **NOW**"
                 "!!!11elevenELEVENTHOUSANDONEHUNDRETELEVEN\n"
                 "🎶 🎵 🎼 🎹 🎧 🎷 🎺 🎸 🎻 📻 🪕 🎚"
             )
             return
         list_items = []
-        for i, title in enumerate([song[KEY_TITLE] for song in self.playlist], 1):
+        playlist = await self.get_playlist()
+        for i, title in enumerate([song[KEY_TITLE] for song in playlist], 1):
             list_items.append(f"{i}. {title}")
         await ctx.send("Playlist:\n>>> {}".format("\n".join(list_items)))
 
     @commands.command()
     async def stop(self, ctx):
         """Stop playing and disconnect"""
-        self.playlist = []
+        await self.set_playlist([])
         if not self.is_playing(ctx):
             await ctx.send("Not currently playing anything.")
             return
-        self.voice_client.stop()
-        await self.voice_client.disconnect()
-        self.voice_client = None
+        (await self.get_voice_client()).stop()
+        await (await self.get_voice_client()).disconnect()
+        await self.set_voice_client(None)
         await ctx.send("Stopped playback and disconnected from voice channel.")
 
     @commands.command(aliases=["next"])
@@ -83,13 +86,14 @@ class MusicCommands(commands.Cog):
         if not self.is_playing(ctx):
             await ctx.send("Not currently playing anything.")
             return
-        self.voice_client.stop()
+        (await self.get_voice_client()).stop()
         await ctx.send("Skipping to the next song.")
 
     @commands.command(aliases=["mv", "switch", "playnext"])
     async def move(self, ctx, *args):
+        playlist = await self.get_playlist()
         """Move a song to the top or desired position"""
-        if len(self.playlist) <= 1:
+        if len(playlist) <= 1:
             await ctx.send("nothing to move here 🕵️‍♂️ - pls add songs 🙇‍♀️🙇‍♂️")
             return
         if len(args) <= 0 or len(args) >= 3:
@@ -103,32 +107,33 @@ class MusicCommands(commands.Cog):
                 "Please select the playlist index of the songs you want to move!"
             )
         args = [int(x) - 1 for x in list(args)]
+
         # if only argument is given, we want to switch with the first song
         if len(args) == 1:
-            self.playlist.insert(0, self.playlist.pop(args[0]))
-            await ctx.send(
-                f"Moved {self.playlist[0][KEY_TITLE]} to top of the playlist! 🏎💨"
-            )
+            playlist.insert(0, playlist.pop(args[0]))
+            await self.set_playlist(playlist)
+            await ctx.send(f"Moved {playlist[0][KEY_TITLE]} to top of the playlist! 🏎💨")
             await self.queue(ctx)
             return
         pos1, pos2 = args
-        self.playlist[pos1], self.playlist[pos2] = (
-            self.playlist[pos2],
-            self.playlist[pos1],
+        playlist[pos1], playlist[pos2] = (
+            playlist[pos2],
+            playlist[pos1],
         )
         await ctx.send(
-            f"Switched {self.playlist[pos1][KEY_TITLE]} and"
-            f" {self.playlist[pos2][KEY_TITLE]}! 🥴💫"
+            f"Switched {playlist[pos1][KEY_TITLE]} and"
+            f" {playlist[pos2][KEY_TITLE]}! 🥴💫"
         )
+        await self.set_playlist(playlist)
         await self.queue(ctx)
 
     @commands.command(aliases=["randomize"])
     async def shuffle(self, ctx):
         """Randomize playlist order"""
-        if len(self.playlist) <= 1:
+        if len((await self.get_playlist())) <= 1:
             await ctx.send("Empty Playlist, nothing to shuffle 🤷‍♂️⁉")
             return
-        random.shuffle(self.playlist)
+        random.shuffle((await self.get_playlist()))
         await ctx.send("Playlist shuffled 😱🤡🧨")
         await self.queue(ctx)
 
@@ -150,7 +155,7 @@ class MusicCommands(commands.Cog):
                     f"Message: {stdout.decode().strip()}\n"
                     f"Error: {stderr.decode().strip()}"
                 )
-            self.playlist.append({KEY_TITLE: title, KEY_URL: url})
+            (await self.get_playlist()).append({KEY_TITLE: title, KEY_URL: url})
             await ctx.send(f"Queued {title}")
         except YoutubeException as exception:
             await ctx.send(f"Error: {str(exception)}")
@@ -158,16 +163,16 @@ class MusicCommands(commands.Cog):
 
     async def play_next_song(self, ctx):
         """Plays the next song"""
-        if len(self.playlist) <= 0:
+        if len((await self.get_playlist())) <= 0:
             await ctx.send("Playlist empty, disconnecting")
-            if self.voice_client is None:
+            if (await self.get_voice_client()) is None:
                 return
-            await self.voice_client.disconnect()
-            self.voice_client = None
+            await (await self.get_voice_client()).disconnect()
+            await self.set_voice_client(None)
             return
-        if self.voice_client is None:
+        if (await self.get_voice_client()) is None:
             self.connect_voice_client(ctx)
-        song = self.playlist.pop(0)
+        song = (await self.get_playlist()).pop(0)
         async with ctx.typing():
             try:
                 source = discord.PCMVolumeTransformer(
@@ -176,7 +181,7 @@ class MusicCommands(commands.Cog):
             except PlaybackException as exception:
                 await ctx.send(f"Error: {str(exception)}")
                 return
-            self.voice_client.play(
+            (await self.get_voice_client()).play(
                 source,
                 after=lambda e: asyncio.run_coroutine_threadsafe(
                     self.play_next_song(ctx), self.client.loop
@@ -186,12 +191,34 @@ class MusicCommands(commands.Cog):
 
     async def connect_voice_client(self, ctx):
         """Connects to voice client if not already coinnected"""
-        if self.voice_client and self.voice_client.is_connected():
+        if (await self.get_voice_client()) and (
+            await self.get_voice_client()
+        ).is_connected():
             return
         voice_channel = ctx.author.voice.channel
-        self.voice_client = await voice_channel.connect()
-        if not self.voice_client:
+        await self.set_voice_client(await voice_channel.connect())
+        if not (await self.get_voice_client()):
             raise VoiceClientException("Failed to connect to the voice channel")
+
+    async def get_voice_client(self):
+        """access global voice client"""
+        global voice_client
+        return voice_client
+
+    async def set_voice_client(self, value):
+        """set global voice client"""  #
+        global voice_client
+        voice_client = value
+
+    async def get_playlist(self):
+        """access global playlist"""
+        global playlist
+        return playlist
+
+    async def set_playlist(self, value):
+        """set global playlist"""
+        global playlist
+        playlist = value
 
 
 async def setup(client):

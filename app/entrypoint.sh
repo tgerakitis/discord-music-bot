@@ -6,9 +6,12 @@ if [ -z "$@" ]; then
 fi
 
 if [ "$@" = "debugpy" ]; then
+	echo "launching dev mode"
 	exec python -m debugpy --listen 0.0.0.0:5678 /workspace/app/bot.py
 elif [ "$@" = "bot" ]; then
+	echo "launching prod mode"
 	exec python -O /app/bot.py
 fi
 
+echo "launching custom script"
 exec "$@"
