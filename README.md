@@ -5,7 +5,7 @@ A simple Discord music bot with basic functionality. Please note that this bot m
 ## Development
 
 1. Clone this repository.
-2. Run `docker-compose up` in the root directory to start the bot.
+2. Run `docker-compose up --build` in the root directory to start the bot.
 3. Use the provided debugger settings for VS Code in [`.vscode/launch.json`](.vscode/launch.json).
 
 ## Requirements
