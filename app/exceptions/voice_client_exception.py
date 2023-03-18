@@ -1,2 +1,0 @@
-class VoiceClientException(Exception): 
-    pass

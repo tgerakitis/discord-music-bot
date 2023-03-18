@@ -1,0 +1,22 @@
+{
+    "name": "Discord music bot",
+    "service": "discord-music-bot",
+    "workspaceFolder": "/workspace",
+    "shutdownAction": "stopCompose",
+    "dockerComposeFile": [
+        "../docker-compose.yml",
+        "docker-compose.extend.yml"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.black-formatter",
+                "EditorConfig.EditorConfig"
+            ]
+        }
+    },
+    "containerEnv": {"DEVCONTAINER": "true"},
+    "onCreateCommand": "apt install -yf git && pip install black pylint",
+    "postAttachCommand": "./app/entrypoint.sh debugpy"
+}

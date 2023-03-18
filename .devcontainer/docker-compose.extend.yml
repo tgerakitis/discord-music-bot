@@ -1,0 +1,5 @@
+version: "3"
+services:
+  discord-music-bot:
+    command: []
+    entrypoint: ["tail", "-f", "/dev/null"]
