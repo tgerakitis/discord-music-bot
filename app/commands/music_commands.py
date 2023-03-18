@@ -6,6 +6,7 @@ import asyncio
 import discord
 from discord.ext import commands
 
+from app.bot import PLAYLIST, VOICE_CLIENT
 from app.exceptions.playback_exception import PlaybackException
 from app.exceptions.voice_client_exception import VoiceClientException
 from app.exceptions.youtube_exception import YoutubeException
@@ -19,9 +20,6 @@ FFMPEG_OPTIONS = {
 HTML_PARSER = "html.parser"
 KEY_TITLE = "title"
 KEY_URL = "url"
-
-PLAYLIST = []
-VOICE_CLIENT = None
 
 
 class MusicCommands(commands.Cog):
@@ -106,7 +104,11 @@ class MusicCommands(commands.Cog):
                 "Please select the playlist index of the songs you want to move!"
             )
         args = [int(x) - 1 for x in list(args)]
-
+        for element in [x for x in args if not 0 <= x <= (len(PLAYLIST) - 1)]:
+            await ctx.send(
+                f"Song nr {element + 1} does not exist and can not be moved!"
+            )
+            return
         # if only argument is given, we want to switch with the first song
         if len(args) == 1:
             PLAYLIST.insert(0, PLAYLIST.pop(args[0]))
@@ -122,6 +124,24 @@ class MusicCommands(commands.Cog):
             f"Switched {PLAYLIST[pos1][KEY_TITLE]} and"
             f" {PLAYLIST[pos2][KEY_TITLE]}! 🥴💫"
         )
+        await self.queue(ctx)
+
+    @commands.command(aliases=["rm", "kill"])
+    async def remove(self, ctx, *args):
+        """Remove a song"""
+        global PLAYLIST
+        if not all(element.isdigit() for element in args):
+            await ctx.send(
+                "Please select the playlist index of the songs you want to move!"
+            )
+        remove_index = [int(x) - 1 for x in list(args)][0]
+        if not 0 <= remove_index <= (len(PLAYLIST) - 1):
+            await ctx.send(
+                f"Song nr {remove_index + 1} does not exist and can not be removed!"
+            )
+            return
+        removed = PLAYLIST.pop(remove_index)
+        await ctx.send(f"Removed {removed[KEY_TITLE]}! ❌")
         await self.queue(ctx)
 
     @commands.command(aliases=["randomize"])
@@ -195,8 +215,10 @@ class MusicCommands(commands.Cog):
             return
         voice_channel = ctx.author.voice.channel
         VOICE_CLIENT = await voice_channel.connect()
+        # TODO fix case when voice is connected but voice_client is empty
         if not VOICE_CLIENT:
             raise VoiceClientException("Failed to connect to the voice channel")
+
 
 async def setup(client):
     """Setup cog"""

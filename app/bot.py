@@ -7,6 +7,8 @@ import discord
 from discord.ext import commands
 from cogwatch import watch
 
+PLAYLIST = []
+VOICE_CLIENT = None
 
 class DiscordMusicBot(commands.Bot):
     """A discord music bot that finds and plays songs"""
