@@ -10,4 +10,3 @@ indent_size = 4
 indent_size = 2
 [*.sh]
 indent_style = tab
-[]
