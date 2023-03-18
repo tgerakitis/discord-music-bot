@@ -72,7 +72,7 @@ class MusicCommands(commands.Cog):
     async def stop(self, ctx):
         """Stop playing and disconnect"""
         await self.set_playlist([])
-        if not self.is_playing(ctx):
+        if not await self.is_playing(ctx):
             await ctx.send("Not currently playing anything.")
             return
         (await self.get_voice_client()).stop()
@@ -83,7 +83,7 @@ class MusicCommands(commands.Cog):
     @commands.command(aliases=["next"])
     async def skip(self, ctx):
         """Skip top next song"""
-        if not self.is_playing(ctx):
+        if not await self.is_playing(ctx):
             await ctx.send("Not currently playing anything.")
             return
         (await self.get_voice_client()).stop()
