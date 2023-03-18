@@ -1,5 +1,6 @@
 """Commands for music playback"""
 import subprocess
+import random
 
 import asyncio
 import discord
@@ -36,16 +37,20 @@ class MusicCommands(commands.Cog):
             await ctx.send("You are not in a voice channel")
             return
         await self.add_song_to_playlist(ctx, " ".join(args))
-        if (
-            self.voice_client
-            and self.voice_client.is_connected()
-            and self.voice_client.is_playing()
-        ):
+        if ():
             return
         await self.connect_voice_client(ctx)
         asyncio.run_coroutine_threadsafe(self.play_next_song(ctx), self.client.loop)
 
-    @commands.command(aliases=["q", "playlist"])
+    async def is_playing(self, ctx):
+        """Helper to check if something is currently plaing"""
+        return (
+            self.voice_client
+            and self.voice_client.is_connected()
+            and self.voice_client.is_playing()
+        )
+
+    @commands.command(aliases=["q", "playlist", "list"])
     async def queue(self, ctx):
         """Render current queue"""
         if len(self.playlist) <= 0:
@@ -64,7 +69,7 @@ class MusicCommands(commands.Cog):
     async def stop(self, ctx):
         """Stop playing and disconnect"""
         self.playlist = []
-        if not self.voice_client or not self.voice_client.is_connected():
+        if not self.is_playing(ctx):
             await ctx.send("Not currently playing anything.")
             return
         self.voice_client.stop()
@@ -75,23 +80,57 @@ class MusicCommands(commands.Cog):
     @commands.command(aliases=["next"])
     async def skip(self, ctx):
         """Skip top next song"""
-        if not self.voice_client or not self.voice_client.is_connected():
+        if not self.is_playing(ctx):
             await ctx.send("Not currently playing anything.")
             return
         self.voice_client.stop()
         await ctx.send("Skipping to the next song.")
 
-    @commands.command(aliases=["mv"])
+    @commands.command(aliases=["mv", "switch", "playnext"])
     async def move(self, ctx, *args):
         """Move a song to the top or desired position"""
-        if len(self.playlist) <= 0:
-            await ctx.send("Playlist empty, nothing to move here 🕵️‍♂️")
+        if len(self.playlist) <= 1:
+            await ctx.send("nothing to move here 🕵️‍♂️ - pls add songs 🙇‍♀️🙇‍♂️")
             return
-        if len(args) <= 0:
-            await ctx.send("Please select the playlist index of the song you want to move")
+        if len(args) <= 0 or len(args) >= 3:
+            await ctx.send(
+                "Please select the playlist index of the songs you want to move!"
+            )
             await self.queue(ctx)
             return
+        if not all(element.isdigit() for element in args):
+            await ctx.send(
+                "Please select the playlist index of the songs you want to move!"
+            )
+        args = [int(x) - 1 for x in list(args)]
+        # if only argument is given, we want to switch with the first song
+        if len(args) == 1:
+            self.playlist.insert(0, self.playlist.pop(args[0]))
+            await ctx.send(
+                f"Moved {self.playlist[0][KEY_TITLE]} to top of the playlist! 🏎💨"
+            )
+            await self.queue(ctx)
+            return
+        pos1, pos2 = args
+        self.playlist[pos1], self.playlist[pos2] = (
+            self.playlist[pos2],
+            self.playlist[pos1],
+        )
+        await ctx.send(
+            f"Switched {self.playlist[pos1][KEY_TITLE]} and"
+            f" {self.playlist[pos2][KEY_TITLE]}! 🥴💫"
+        )
+        await self.queue(ctx)
 
+    @commands.command(aliases=["randomize"])
+    async def shuffle(self, ctx):
+        """Randomize playlist order"""
+        if len(self.playlist) <= 1:
+            await ctx.send("Empty Playlist, nothing to shuffle 🤷‍♂️⁉")
+            return
+        random.shuffle(self.playlist)
+        await ctx.send("Playlist shuffled 😱🤡🧨")
+        await self.queue(ctx)
 
     async def add_song_to_playlist(self, ctx, query):
         """Adds a song to current playlist"""

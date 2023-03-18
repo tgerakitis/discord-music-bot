@@ -5,12 +5,10 @@ if [ -z "$@" ]; then
 	exit
 fi
 
-baseFolder="/app"
-
 if [ "$@" = "debugpy" ]; then
-	exec python -m debugpy --listen 0.0.0.0:5678 ${baseFolder}/bot.py
+	exec python -m debugpy --listen 0.0.0.0:5678 /workspace/app/bot.py
 elif [ "$@" = "bot" ]; then
-	exec python -O ${baseFolder}/bot.py
+	exec python -O /app/bot.py
 fi
 
 exec "$@"

@@ -6,8 +6,9 @@ services:
     environment:
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?no DISCORD_BOT_TOKEN set}
       COMMAND_PREFIX: ${COMMAND_PREFIX:-!!}
+    working_dir: /workspace/app
     volumes:
-      - "./app:/app"
+      - "./:/workspace"
     command: ["debugpy"]
     ports:
       - 5678:5678

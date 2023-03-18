@@ -1,8 +1,5 @@
 version: "3"
 services:
   discord-music-bot:
-    volumes:
-      - "./app:/app"
-      - "./:/workspace"
     command: []
     entrypoint: ["tail", "-f", "/dev/null"]
