@@ -16,6 +16,8 @@ A simple Discord music bot with basic functionality. Please note that this bot m
 ### In discord
 * Type `!play <search text>` to add a song to the queue.
 * Type `!stop` to stop and disconnect the bot.
+* Type `!q` to list the current song queue.
+* Type `!skip` to skip to the next song.
 
 ### Environment Variables
 
