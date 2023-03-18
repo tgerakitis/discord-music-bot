@@ -5,6 +5,7 @@ services:
       context: .
     environment:
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?no DISCORD_BOT_TOKEN set}
+      COMMAND_PREFIX: ${COMMAND_PREFIX:-!!}
     volumes:
       - "./app:/app"
     command: [ "debugpy" ]

@@ -4,6 +4,7 @@ import subprocess
 import asyncio
 import discord
 from discord.ext import commands
+from yt_dlp import YoutubeDL
 
 from exceptions.youtube_exception import YoutubeException
 from exceptions.voice_client_exception import VoiceClientException
@@ -20,28 +21,32 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix=os.getenv("COMMAND_PREFIX", "!"), intents=intents)
 voice_client = None
+
+KEY_TITLE = "title"
+KEY_URL = "url"
 playlist = []
 
 
-@bot.command()
+@bot.command(aliases=["add"])
 async def play(ctx, *args):
     global playlist, voice_client
-    query = " ".join(args)
     if not ctx.author.voice:
         await ctx.send("You are not in a voice channel")
         return
-    playlist.append(query)
-    if voice_client and voice_client.is_connected():
-        await ctx.send(f"Queued {query}")
+    await add_song_to_playlist(ctx, " ".join(args))
+    if voice_client and voice_client.is_connected() and voice_client.is_playing():
         return
     await connect_voice_client(ctx)
     asyncio.run_coroutine_threadsafe(play_next_song(ctx), bot.loop)
 
 
-@bot.command()
+@bot.command(aliases=["queue", "playlist"])
 async def q(ctx):
     global playlist
-    await ctx.send("Playlist:\n* " + "\n* ".join(playlist))
+    list_items = []
+    for (i, title) in enumerate([song[KEY_TITLE] for song in playlist], 1):
+        list_items.append(f"{i}. {title}")
+    await ctx.send("Playlist:\n>>> {}".format("\n".join(list_items)))
 
 
 @bot.command()
@@ -57,7 +62,7 @@ async def stop(ctx):
     await ctx.send("Stopped playback and disconnected from voice channel.")
 
 
-@bot.command()
+@bot.command(aliases=["next"])
 async def skip(ctx):
     global playlist, voice_client
     if not voice_client or not voice_client.is_connected():
@@ -65,6 +70,26 @@ async def skip(ctx):
         return
     voice_client.stop()
     await ctx.send("Skipping to the next song.")
+
+
+async def add_song_to_playlist(ctx, query):
+    global playlist
+    try:
+        cmd = f'yt-dlp -f bestaudio -g "ytsearch:{query}" --print "%(title)s - %(duration>%H:%M:%S)s"'
+        process = await asyncio.create_subprocess_shell(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        title, url = stdout.decode().strip().split("\n")
+        if process.returncode != 0:
+            raise YoutubeException(
+                f"yt-dlp returned non-zero exit code {process.returncode}"
+            )
+        playlist.append({KEY_TITLE: title, KEY_URL: url})
+        await ctx.send(f"Queued {title}")
+    except Exception as e:
+        await ctx.send(f"Error: {str(e)}")
+        return
 
 
 async def play_next_song(ctx):
@@ -78,20 +103,11 @@ async def play_next_song(ctx):
         return
     if voice_client == None:
         connect_voice_client(ctx)
-    query = playlist.pop(0)
+    song = playlist.pop(0)
     async with ctx.typing():
         try:
-            cmd = f'yt-dlp -f bestaudio -g "ytsearch:{query}"'
-            process = await asyncio.create_subprocess_shell(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-            if process.returncode != 0:
-                raise YoutubeException(
-                    f"yt-dlp returned non-zero exit code {process.returncode}"
-                )
             source = discord.PCMVolumeTransformer(
-                discord.FFmpegPCMAudio(stdout.decode().strip(), **FFMPEG_OPTIONS)
+                discord.FFmpegPCMAudio(song.get(KEY_URL), **FFMPEG_OPTIONS)
             )
         except Exception as e:
             await ctx.send(f"Error: {str(e)}")
@@ -102,7 +118,7 @@ async def play_next_song(ctx):
                 play_next_song(ctx), bot.loop
             ).result(),
         )
-        await ctx.send(f"Now playing: {query}")
+        await ctx.send(f"Now playing: {song.get(KEY_TITLE)}")
 
 
 async def connect_voice_client(ctx):
