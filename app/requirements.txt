@@ -1,4 +1,5 @@
 asyncio
+cogwatch
 debugpy
 discord.py
 PyNaCl
