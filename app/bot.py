@@ -45,7 +45,7 @@ async def q(ctx):
     global playlist
     if len(playlist) <= 0:
         await ctx.send(
-            "🙉 the playlist is **EMPTY** �🙉�😭 - fillup **NOW** 🎶🎵🎼🎹🎧🎷🎺🎸🎻📻🪕🎚ff!! "
+            "🙉 the playlist is **EMPTY** 😭 - fill it up **NOW**!!!!111elevenELEVENTHOUSANDONEHUNDRETELEVEN\n🎶 🎵 🎼 🎹 🎧 🎷 🎺 🎸 🎻 📻 🪕 🎚"
         )
         return
     list_items = []
