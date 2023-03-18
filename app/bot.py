@@ -8,6 +8,11 @@ from discord.ext import commands
 from cogwatch import watch
 
 
+commands_folder = "commands"
+if os.getenv("DEVCONTAINER") == "true":
+    commands_folder = "app/commands"
+
+
 class DiscordMusicBot(commands.Bot):
     """A discord music bot that finds and plays songs"""
 
@@ -18,7 +23,7 @@ class DiscordMusicBot(commands.Bot):
             command_prefix=os.getenv("COMMAND_PREFIX", "!"), intents=intents
         )
 
-    @watch(path="commands", preload=True)
+    @watch(path=commands_folder, preload=True)
     async def on_ready(self):
         """Loads all commands when ready"""
         for commands_file in (pathlib.Path(__file__).parent / "commands").glob("*.py"):
