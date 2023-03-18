@@ -7,9 +7,9 @@ services:
     environment:
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?no DISCORD_BOT_TOKEN set}
       COMMAND_PREFIX: ${COMMAND_PREFIX:-!!}
-    #volumes:
-    #  - "./:/workspace"
-    #command: ["debugpy"]
+    volumes:
+      - "./:/workspace"
+    command: ["debugpy"]
     ports:
       - 5678:5678
     restart: always
