@@ -6,10 +6,10 @@ import asyncio
 import discord
 from discord.ext import commands
 
-from app.bot import PLAYLIST, VOICE_CLIENT
-from app.exceptions.playback_exception import PlaybackException
-from app.exceptions.voice_client_exception import VoiceClientException
-from app.exceptions.youtube_exception import YoutubeException
+from bot import PLAYLIST, VOICE_CLIENT
+from exceptions.playback_exception import PlaybackException
+from exceptions.voice_client_exception import VoiceClientException
+from exceptions.youtube_exception import YoutubeException
 
 # CONSTANTS
 AUDIO_FILENAME = "audio.mp3"
