@@ -9,7 +9,7 @@ from cogwatch import watch
 
 
 commands_folder = "commands"
-if os.getcwd() != "/workspace":
+if os.getcwd() == "/workspace":
     commands_folder = "app/commands"
 
 
