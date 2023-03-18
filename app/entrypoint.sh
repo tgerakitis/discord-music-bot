@@ -12,6 +12,7 @@ if [ "$@" = "debugpy" ]; then
 	exec python -m debugpy --listen 0.0.0.0:5678 $botFile
 elif [ "$@" = "bot" ]; then
 	echo "launching prod mode"
+	cd /workspace/app
 	exec python -O $botFile
 fi
 
