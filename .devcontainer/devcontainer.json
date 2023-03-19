@@ -9,14 +9,23 @@
     ],
     "customizations": {
         "vscode": {
+            "settings": {
+                "python.linting.flake8Args": [
+                    "--config",
+                    ".flake8"
+                ]
+            },
             "extensions": [
                 "ms-python.python",
                 "ms-python.black-formatter",
-                "EditorConfig.EditorConfig"
+                "EditorConfig.EditorConfig",
+                "ms-python.flake8"
             ]
         }
     },
-    "containerEnv": {"DEVCONTAINER": "true"},
-    "onCreateCommand": "apt install -yf git && pip install black pylint",
-    "postAttachCommand": "./app/entrypoint.sh debugpy"
+    "containerEnv": {
+        "DEVCONTAINER": "true"
+    },
+    "onCreateCommand": "apt install -yf git && pip install black flake8",
+    "postAttachCommand": "echo 'Please run ./debug.py and then hit f5 to start debugging'"
 }

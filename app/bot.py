@@ -1,5 +1,4 @@
 """This is the application entrypoint"""
-from distutils.log import debug
 import os
 import asyncio
 import pathlib
