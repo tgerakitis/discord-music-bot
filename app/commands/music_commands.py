@@ -20,6 +20,9 @@ FFMPEG_OPTIONS = {
 HTML_PARSER = "html.parser"
 KEY_TITLE = "title"
 KEY_URL = "url"
+KEY_THUMBNAIL = "thumbnail"
+
+THUMBNAILSPLITTER = "SPLITHEREFORTHUMBNAIL123"
 
 
 class MusicCommands(commands.Cog):
@@ -160,21 +163,26 @@ class MusicCommands(commands.Cog):
         try:
             cmd = (
                 f'yt-dlp -f bestaudio -g "ytsearch:{query}"'
-                ' --print "%(title)s - %(duration>%H:%M:%S)s"'
+                f' --print "%(title)s - %(duration>%H:%M:%S)s{THUMBNAILSPLITTER}%(thumbnail)s"'
             )
             process = await asyncio.create_subprocess_shell(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
             stdout, stderr = await process.communicate()
             title, url = stdout.decode().strip().split("\n")
+            title, thumbnail_url = title.split(THUMBNAILSPLITTER)
             if process.returncode != 0:
                 raise YoutubeException(
                     f"yt-dlp returned non-zero exit code {process.returncode}\n"
                     f"Message: {stdout.decode().strip()}\n"
                     f"Error: {stderr.decode().strip()}"
                 )
-            PLAYLIST.append({KEY_TITLE: title, KEY_URL: url})
-            await ctx.send(f"Queued {title}")
+            PLAYLIST.append(
+                {KEY_TITLE: title, KEY_URL: url, KEY_THUMBNAIL: thumbnail_url}
+            )
+            if len(PLAYLIST) <= 0:
+                thumbnail_url = ""
+            await ctx.send(f"Queued {title}\n{thumbnail_url}")
         except YoutubeException as exception:
             await ctx.send(f"Error: {str(exception)}")
             return
@@ -206,7 +214,9 @@ class MusicCommands(commands.Cog):
                     self.play_next_song(ctx), self.client.loop
                 ).result(),
             )
-            await ctx.send(f"Now playing: {song.get(KEY_TITLE)}")
+            await ctx.send(
+                f"Now playing: {song.get(KEY_TITLE)}\n{song.get(KEY_THUMBNAIL)}"
+            )
 
     async def connect_voice_client(self, ctx):
         """Connects to voice client if not already coinnected"""
