@@ -180,7 +180,7 @@ class MusicCommands(commands.Cog):
             PLAYLIST.append(
                 {KEY_TITLE: title, KEY_URL: url, KEY_THUMBNAIL: thumbnail_url}
             )
-            if len(PLAYLIST) <= 1:
+            if not self.is_playing(ctx):
                 thumbnail_url = ""
             await ctx.send(f"Queued {title}\n{thumbnail_url}")
         except YoutubeException as exception:
