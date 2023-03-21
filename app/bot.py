@@ -2,12 +2,13 @@
 import os
 import asyncio
 import pathlib
+from typing import Annotated
 import discord
 from discord.ext import commands
 from cogwatch import watch
 
 PLAYLIST = []
-VOICE_CLIENT = None
+VOICE_CLIENT = Annotated[discord.VoiceClient, "Discord Voice Client"]
 
 
 class DiscordMusicBot(commands.Bot):

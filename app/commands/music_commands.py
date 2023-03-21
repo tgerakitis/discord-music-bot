@@ -5,7 +5,6 @@ import random
 import asyncio
 import discord
 from discord.ext import commands
-
 from bot import PLAYLIST, VOICE_CLIENT
 from exceptions.playback_exception import PlaybackException
 from exceptions.voice_client_exception import VoiceClientException
@@ -32,7 +31,7 @@ class MusicCommands(commands.Cog):
         self.client = client
 
     @commands.command(aliases=["add"])
-    async def play(self, ctx, *args):
+    async def play(self, ctx: commands.Context, *args):
         """Entrypoint"""
         if not ctx.author.voice:
             await ctx.send("You are not in a voice channel")
@@ -44,14 +43,14 @@ class MusicCommands(commands.Cog):
         await self.connect_voice_client(ctx)
         asyncio.run_coroutine_threadsafe(self.play_next_song(ctx), self.client.loop)
 
-    async def is_playing(self, ctx):
+    async def is_playing(self, ctx: commands.Context):
         """Helper to check if something is currently plaing"""
         return (
             VOICE_CLIENT and VOICE_CLIENT.is_connected() and VOICE_CLIENT.is_playing()
         )
 
     @commands.command(aliases=["q", "playlist", "list"])
-    async def queue(self, ctx):
+    async def queue(self, ctx: commands.Context):
         """Render current queue"""
         global PLAYLIST
         if len(PLAYLIST) <= 0:
@@ -68,7 +67,7 @@ class MusicCommands(commands.Cog):
         await ctx.send("Playlist:\n>>> {}".format("\n".join(list_items)))
 
     @commands.command()
-    async def stop(self, ctx):
+    async def stop(self, ctx: commands.Context):
         """Stop playing and disconnect"""
         global PLAYLIST, VOICE_CLIENT
         PLAYLIST = []
@@ -81,7 +80,7 @@ class MusicCommands(commands.Cog):
         await ctx.send("Stopped playback and disconnected from voice channel.")
 
     @commands.command(aliases=["next"])
-    async def skip(self, ctx):
+    async def skip(self, ctx: commands.Context):
         """Skip top next song"""
         if not await self.is_playing(ctx):
             await ctx.send("Not currently playing anything.")
@@ -90,7 +89,7 @@ class MusicCommands(commands.Cog):
         await ctx.send("Skipping to the next song.")
 
     @commands.command(aliases=["mv", "switch", "playnext"])
-    async def move(self, ctx, *args):
+    async def move(self, ctx: commands.Context, *args):
         """Move a song to the top or desired position"""
         global PLAYLIST
         if len(PLAYLIST) <= 1:
@@ -130,7 +129,7 @@ class MusicCommands(commands.Cog):
         await self.queue(ctx)
 
     @commands.command(aliases=["rm", "kill"])
-    async def remove(self, ctx, *args):
+    async def remove(self, ctx: commands.Context, *args):
         """Remove a song"""
         global PLAYLIST
         if not all(element.isdigit() for element in args):
@@ -148,7 +147,7 @@ class MusicCommands(commands.Cog):
         await self.queue(ctx)
 
     @commands.command(aliases=["randomize"])
-    async def shuffle(self, ctx):
+    async def shuffle(self, ctx: commands.Context):
         """Randomize playlist order"""
         global PLAYLIST
         if len(PLAYLIST) <= 1:
@@ -158,7 +157,7 @@ class MusicCommands(commands.Cog):
         await ctx.send("Playlist shuffled 😱🤡🧨")
         await self.queue(ctx)
 
-    async def add_song_to_playlist(self, ctx, query):
+    async def add_song_to_playlist(self, ctx: commands.Context, query):
         """Adds a song to current playlist"""
         try:
             cmd = (
@@ -187,7 +186,7 @@ class MusicCommands(commands.Cog):
             await ctx.send(f"Error: {str(exception)}")
             return
 
-    async def play_next_song(self, ctx):
+    async def play_next_song(self, ctx: commands.Context):
         """Plays the next song"""
         global VOICE_CLIENT
         if len(PLAYLIST) <= 0:
@@ -218,7 +217,7 @@ class MusicCommands(commands.Cog):
                 f"Now playing: {song.get(KEY_TITLE)}\n{song.get(KEY_THUMBNAIL)}"
             )
 
-    async def connect_voice_client(self, ctx):
+    async def connect_voice_client(self, ctx: commands.Context):
         """Connects to voice client if not already coinnected"""
         global VOICE_CLIENT
         if VOICE_CLIENT and VOICE_CLIENT.is_connected():
