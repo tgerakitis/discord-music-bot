@@ -8,7 +8,7 @@ from discord.ext import commands
 from cogwatch import watch
 
 PLAYLIST = []
-VOICE_CLIENT = Annotated[discord.VoiceClient, "Discord Voice Client"]
+VOICE_CLIENT: discord.VoiceClient = None
 
 
 class DiscordMusicBot(commands.Bot):
