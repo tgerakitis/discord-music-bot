@@ -1,6 +1,7 @@
 """Commands for music playback"""
-import subprocess
+import os
 import random
+import subprocess
 
 import asyncio
 import discord
@@ -20,7 +21,7 @@ HTML_PARSER = "html.parser"
 KEY_TITLE = "title"
 KEY_URL = "url"
 KEY_THUMBNAIL = "thumbnail"
-
+PLAYLIST_FOLDER = os.getenv("PLAYLIST_FOLDER", "/playlists")
 THUMBNAILSPLITTER = "SPLITHEREFORTHUMBNAIL123"
 
 
@@ -43,7 +44,7 @@ class MusicCommands(commands.Cog):
         await self.connect_voice_client(ctx)
         asyncio.run_coroutine_threadsafe(self.play_next_song(ctx), self.client.loop)
 
-    async def is_playing(self, ctx: commands.Context):
+    async def is_playing(self):
         """Helper to check if something is currently plaing"""
         return (
             VOICE_CLIENT and VOICE_CLIENT.is_connected() and VOICE_CLIENT.is_playing()
@@ -66,12 +67,12 @@ class MusicCommands(commands.Cog):
             list_items.append(f"{i}. {title}")
         await ctx.send("Playlist:\n>>> {}".format("\n".join(list_items)))
 
-    @commands.command()
+    @commands.command(aliases=[])
     async def stop(self, ctx: commands.Context):
         """Stop playing and disconnect"""
         global PLAYLIST, VOICE_CLIENT
         PLAYLIST = []
-        if not await self.is_playing(ctx):
+        if not await self.is_playing():
             await ctx.send("Not currently playing anything.")
             return
         VOICE_CLIENT.stop()
@@ -82,7 +83,7 @@ class MusicCommands(commands.Cog):
     @commands.command(aliases=["next"])
     async def skip(self, ctx: commands.Context):
         """Skip top next song"""
-        if not await self.is_playing(ctx):
+        if not await self.is_playing():
             await ctx.send("Not currently playing anything.")
             return
         VOICE_CLIENT.stop()
@@ -179,7 +180,7 @@ class MusicCommands(commands.Cog):
             PLAYLIST.append(
                 {KEY_TITLE: title, KEY_URL: url, KEY_THUMBNAIL: thumbnail_url}
             )
-            if not await self.is_playing(ctx):
+            if not await self.is_playing():
                 thumbnail_url = ""
             await ctx.send(f"Queued {title}\n{thumbnail_url}")
         except YoutubeException as exception:
@@ -227,6 +228,129 @@ class MusicCommands(commands.Cog):
         # TODO fix case when voice is connected but voice_client is empty
         if not VOICE_CLIENT:
             raise VoiceClientException("Failed to connect to the voice channel")
+
+    @commands.command(aliases=["save"])
+    async def save_playlist_to_file(self, ctx: commands.Context, filename):
+        """
+        Save the global variable PLAYLIST to a file in the 'playlists' folder.
+        """
+        os.makedirs(PLAYLIST_FOLDER, exist_ok=True)
+        with open(f"{PLAYLIST_FOLDER}/{filename}", "w") as f:
+            f.write("\n".join(PLAYLIST))
+            ctx.send(embed=f"Saved {filename}")
+
+    @commands.command(aliases=["playlists"])
+    async def list_stored_playlists(self, ctx: commands.Context):
+        """
+        List all files in the 'playlists' folder.
+        """
+        ctx.send(embed="\n".join(os.listdir(PLAYLIST_FOLDER)))
+
+    @commands.command(aliases=["load"])
+    async def load_playlist(self, ctx: commands.Context, filename):
+        """
+        Load the contents of a file in the 'playlists' folder into the global variable PLAYLIST.
+        """
+        global PLAYLIST
+        with open(f"{PLAYLIST_FOLDER}/{filename}", "r") as f:
+            PLAYLIST = f.read().splitlines()
+        self.play_next_song(ctx)
+
+    @commands.command(aliases=[])
+    async def add_song_to_stored_playlist(self, ctx: commands.Context, filename, songs):
+        """
+        Add one or multiple songs to a file in the 'playlists' folder.
+        """
+        global PLAYLIST
+        if isinstance(songs, str):
+            PLAYLIST.append(songs)
+        elif isinstance(songs, list):
+            PLAYLIST.extend(songs)
+        await self.save_playlist_to_file(filename)
+
+    @commands.command(aliases=[])
+    async def remove_song_from_stored_playlist(self, filename, songs):
+        """
+        Remove one or multiple songs from a file in the 'playlists' folder.
+        """
+        global PLAYLIST
+        if isinstance(songs, str):
+            songs = [songs]
+        PLAYLIST = [song for song in PLAYLIST if song not in songs]
+        await self.save_playlist_to_file(filename)
+
+    @commands.command(aliases=[])
+    async def rename_stored_playlist(
+        self, ctx: commands.Context, old_filename, new_filename
+    ):
+        """
+        Rename a playlist file.
+        """
+        os.rename(
+            f"{PLAYLIST_FOLDER}/{old_filename}", f"{PLAYLIST_FOLDER}/{new_filename}"
+        )
+        ctx.send(embed=f"Renamed")
+
+    @commands.command(aliases=[])
+    async def show_store_playlist(self, ctx: commands.Context, filename):
+        """
+        Show the contents of a playlist file.
+        """
+        with open(f"{PLAYLIST_FOLDER}/{filename}", "r") as f:
+            ctx.send(embed=f.read())
+
+    @commands.command(aliases=[])
+    async def show_all_playlists(self, ctx: commands.Context):
+        """
+        Show the contents of all playlist files.
+        """
+        playlists = os.listdir(PLAYLIST_FOLDER)
+        for playlist in playlists:
+            with open(f"{PLAYLIST_FOLDER}/{playlist}", "r") as f:
+                ctx.send(embed=f"{playlist}:\n{f.read()}")
+
+    @commands.command(aliases=[])
+    async def get_stored_playlist_length(self, ctx: commands.Context):
+        """
+        Get the length of the playlist.
+        """
+        playlists = os.listdir(PLAYLIST_FOLDER)
+        for playlist in playlists:
+            with open(f"{PLAYLIST_FOLDER}/{playlist}", "r") as f:
+                ctx.send(
+                    embed=f"The length of {playlist} is {len(f.read().splitlines())}"
+                )
+
+    @commands.command(aliases=["delete"])
+    async def delete_stored_playlist(self, ctx: commands.Context, filename):
+        """
+        Delete a playlist file.
+        """
+        ctx.send(
+            f"Are you sure you want to delete {filename}? This action cannot be undone. (yes/no)"
+        )
+        if await self.prompt_user_bool():
+            os.remove(f"{PLAYLIST_FOLDER}/{filename}")
+            print(f"{filename} has been deleted.")
+        else:
+            print(f"{filename} was not deleted.")
+
+    async def prompt_user_bool(self):
+        """
+        Prompt the user for input and return their response.
+        """
+
+        def check(message):
+            return message.author == self.client.user and message.content.lower() in [
+                "yes",
+                "no",
+            ]
+
+        message = await self.client.wait_for(
+            "message",
+            check=check,
+        )
+        return message.content.lower() == "yes"
 
 
 async def setup(client):
