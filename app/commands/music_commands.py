@@ -1,4 +1,5 @@
 """Commands for music playback"""
+import json
 import os
 import random
 import subprocess
@@ -61,11 +62,20 @@ class MusicCommands(commands.Cog):
                 "🎶 🎵 🎼 🎹 🎧 🎷 🎺 🎸 🎻 📻 🪕 🎚"
             )
             return
-        list_items = []
-        playlist = PLAYLIST
-        for i, title in enumerate([song[KEY_TITLE] for song in playlist], 1):
-            list_items.append(f"{i}. {title}")
-        await ctx.send("Playlist:\n>>> {}".format("\n".join(list_items)))
+        await self.render_playlist(ctx, "Current", PLAYLIST)
+
+    async def render_playlist(self, ctx, playlist_name: str, playlist: list[dict]):
+        list_items = "".join(
+            [
+                f"\n{song[1]+1}. {song[0].get(KEY_TITLE)}"
+                for song in zip(playlist, range(len(playlist)))
+            ]
+        )
+        await ctx.send(
+            embed=discord.Embed(
+                title="{playlist_name} Playlist", description=f">>> {list_items}"
+            )
+        )
 
     @commands.command(aliases=[])
     async def stop(self, ctx: commands.Context):
@@ -236,15 +246,17 @@ class MusicCommands(commands.Cog):
         """
         os.makedirs(PLAYLIST_FOLDER, exist_ok=True)
         with open(f"{PLAYLIST_FOLDER}/{filename}", "w") as f:
-            f.write("\n".join(PLAYLIST))
-            ctx.send(embed=f"Saved {filename}")
+            json.dump(PLAYLIST, f)
+            await ctx.send(embed=discord.Embed(title="successfully saved {filename}"))
 
     @commands.command(aliases=["playlists"])
     async def list_stored_playlists(self, ctx: commands.Context):
         """
         List all files in the 'playlists' folder.
         """
-        ctx.send(embed="\n".join(os.listdir(PLAYLIST_FOLDER)))
+        await ctx.send(
+            embed=discord.Embed(description="\n".join(os.listdir(PLAYLIST_FOLDER)))
+        )
 
     @commands.command(aliases=["load"])
     async def load_playlist(self, ctx: commands.Context, filename):
@@ -253,8 +265,10 @@ class MusicCommands(commands.Cog):
         """
         global PLAYLIST
         with open(f"{PLAYLIST_FOLDER}/{filename}", "r") as f:
-            PLAYLIST = f.read().splitlines()
-        self.play_next_song(ctx)
+            playlist_temp: list[dict] = json.load(f)
+            PLAYLIST = playlist_temp
+            await self.queue(ctx)
+        await self.play_next_song(ctx)
 
     @commands.command(aliases=[])
     async def add_song_to_stored_playlist(self, ctx: commands.Context, filename, songs):
@@ -269,15 +283,20 @@ class MusicCommands(commands.Cog):
         await self.save_playlist_to_file(filename)
 
     @commands.command(aliases=[])
-    async def remove_song_from_stored_playlist(self, filename, songs):
+    async def remove_song_from_stored_playlist(
+        self, ctx: commands.Context, filename, songs
+    ):
         """
         Remove one or multiple songs from a file in the 'playlists' folder.
         """
-        global PLAYLIST
-        if isinstance(songs, str):
-            songs = [songs]
-        PLAYLIST = [song for song in PLAYLIST if song not in songs]
-        await self.save_playlist_to_file(filename)
+        # global PLAYLIST
+        # if isinstance(songs, str):
+        #     songs = [songs]
+        # PLAYLIST = [song for song in PLAYLIST if song not in songs]
+        # await self.save_playlist_to_file(filename)
+        await ctx.send(
+            embed=discord.Embed(description=f"Feature currently unavailable")
+        )
 
     @commands.command(aliases=[])
     async def rename_stored_playlist(
@@ -289,15 +308,18 @@ class MusicCommands(commands.Cog):
         os.rename(
             f"{PLAYLIST_FOLDER}/{old_filename}", f"{PLAYLIST_FOLDER}/{new_filename}"
         )
-        ctx.send(embed=f"Renamed")
+        await ctx.send(
+            embed=discord.Embed(title=f"Renamed {old_filename} to {new_filename}")
+        )
 
     @commands.command(aliases=[])
-    async def show_store_playlist(self, ctx: commands.Context, filename):
+    async def show_stored_playlist(self, ctx: commands.Context, filename):
         """
         Show the contents of a playlist file.
         """
         with open(f"{PLAYLIST_FOLDER}/{filename}", "r") as f:
-            ctx.send(embed=f.read())
+            playlist: list[dict] = json.load(f.read())
+            await self.render_playlist(ctx, filename, playlist)
 
     @commands.command(aliases=[])
     async def show_all_playlists(self, ctx: commands.Context):
@@ -307,7 +329,13 @@ class MusicCommands(commands.Cog):
         playlists = os.listdir(PLAYLIST_FOLDER)
         for playlist in playlists:
             with open(f"{PLAYLIST_FOLDER}/{playlist}", "r") as f:
-                ctx.send(embed=f"{playlist}:\n{f.read()}")
+                playlist_temp: list[dict] = json.load(f)
+            playlist_temp = "\n".join(
+                [song.get(KEY_TITLE) for song in playlist_temp]
+            )
+            await ctx.send(
+                embed=discord.Embed(title=playlist, description=f"{playlist_temp}")
+            )
 
     @commands.command(aliases=[])
     async def get_stored_playlist_length(self, ctx: commands.Context):
@@ -317,8 +345,10 @@ class MusicCommands(commands.Cog):
         playlists = os.listdir(PLAYLIST_FOLDER)
         for playlist in playlists:
             with open(f"{PLAYLIST_FOLDER}/{playlist}", "r") as f:
-                ctx.send(
-                    embed=f"The length of {playlist} is {len(f.read().splitlines())}"
+                await ctx.send(
+                    embed=discord.Embed(
+                        description=f"The length of {playlist} is {len(f.read().splitlines())}"
+                    )
                 )
 
     @commands.command(aliases=["delete"])
@@ -326,7 +356,7 @@ class MusicCommands(commands.Cog):
         """
         Delete a playlist file.
         """
-        ctx.send(
+        await ctx.send(
             f"Are you sure you want to delete {filename}? This action cannot be undone. (yes/no)"
         )
         if await self.prompt_user_bool():

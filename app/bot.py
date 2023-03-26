@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 from cogwatch import watch
 
-PLAYLIST = []
+PLAYLIST: list[dict] = []
 VOICE_CLIENT: discord.VoiceClient = None
 
 

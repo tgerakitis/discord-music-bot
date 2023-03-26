@@ -9,7 +9,7 @@ botFile="${workdir}/bot.py"
 if [ "$@" = "debugpy" ]; then
 	echo "launching dev mode"
 	cd ${workdir}
-	exec python -m debugpy --listen 0.0.0.0:5678 $botFile
+	exec python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 $botFile
 elif [ "$@" = "bot" ]; then
 	echo "launching prod mode"
 	cd ${workdir}
