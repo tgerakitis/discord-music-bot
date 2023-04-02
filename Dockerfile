@@ -1,6 +1,6 @@
 FROM python:3.11-slim-buster
 
-WORKDIR /workspace/app
+WORKDIR /workspace/
 
 RUN apt update \
     && apt install -yf ffmpeg
@@ -8,7 +8,7 @@ RUN apt update \
 COPY ./requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r ./requirements.txt
 
-COPY ./app ./
+COPY ./app ./app
 
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT [ "./app/entrypoint.sh" ]
 CMD [ "bot" ]

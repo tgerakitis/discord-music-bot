@@ -7,10 +7,10 @@ import subprocess
 import asyncio
 import discord
 from discord.ext import commands
-from bot import PLAYLIST, VOICE_CLIENT
-from exceptions.playback_exception import PlaybackException
-from exceptions.voice_client_exception import VoiceClientException
-from exceptions.youtube_exception import YoutubeException
+from app.bot import PLAYLIST, VOICE_CLIENT
+from app.exceptions.playback_exception import PlaybackException
+from app.exceptions.voice_client_exception import VoiceClientException
+from app.exceptions.youtube_exception import YoutubeException
 
 # CONSTANTS
 AUDIO_FILENAME = "audio.mp3"
@@ -270,7 +270,7 @@ class MusicCommands(commands.Cog):
             await self.queue(ctx)
         await self.play_next_song(ctx)
 
-    @commands.command(aliases=[])
+    @commands.command(aliases=["addtoplaylist"])
     async def add_song_to_stored_playlist(self, ctx: commands.Context, filename, songs):
         """
         Add one or multiple songs to a file in the 'playlists' folder.

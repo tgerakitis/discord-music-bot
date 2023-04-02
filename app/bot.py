@@ -2,7 +2,6 @@
 import os
 import asyncio
 import pathlib
-from typing import Annotated
 import discord
 from discord.ext import commands
 from cogwatch import watch
@@ -21,7 +20,7 @@ class DiscordMusicBot(commands.Bot):
             command_prefix=os.getenv("COMMAND_PREFIX", "!"), intents=intents
         )
 
-    @watch(path="commands", preload=True)
+    @watch(path="app/commands", preload=True)
     async def on_ready(self):
         """Loads all commands when ready"""
         for commands_file in (pathlib.Path(__file__).parent / "commands").glob("*.py"):
