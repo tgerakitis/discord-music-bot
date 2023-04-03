@@ -7,6 +7,7 @@ fi
 botFile="app/bot.py"
 if [ "$@" = "debugpy" ]; then
 	echo "launching dev mode"
+	#exec python -Xfrozen_modules=off -m debugpy --wait-for-client --listen 0.0.0.0:5678 $botFile
 	exec python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 $botFile
 elif [ "$@" = "bot" ]; then
 	echo "launching prod mode"
