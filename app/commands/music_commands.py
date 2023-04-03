@@ -3,14 +3,16 @@ import json
 import os
 import random
 import subprocess
+from pathlib import Path
 
 import asyncio
 import discord
 from discord.ext import commands
-from bot import PLAYLIST, VOICE_CLIENT
-from exceptions.playback_exception import PlaybackException
-from exceptions.voice_client_exception import VoiceClientException
-from exceptions.youtube_exception import YoutubeException
+from app.bot import PLAYLIST, VOICE_CLIENT
+from app.exceptions.playback_exception import PlaybackException
+from app.exceptions.voice_client_exception import VoiceClientException
+from app.exceptions.youtube_exception import YoutubeException
+from app.helpers.sanitize_path import sanitize_path
 
 # CONSTANTS
 AUDIO_FILENAME = "audio.mp3"
@@ -40,16 +42,18 @@ class MusicCommands(commands.Cog):
             return
         await self.add_song_to_playlist(ctx, " ".join(args))
 
-        if VOICE_CLIENT and VOICE_CLIENT.is_connected():
+        if await self.voice_connected():
             return
         await self.connect_voice_client(ctx)
         asyncio.run_coroutine_threadsafe(self.play_next_song(ctx), self.client.loop)
 
     async def is_playing(self):
         """Helper to check if something is currently plaing"""
-        return (
-            VOICE_CLIENT and VOICE_CLIENT.is_connected() and VOICE_CLIENT.is_playing()
-        )
+        return (await self.voice_connected()) and VOICE_CLIENT.is_playing()
+
+    async def voice_connected(self):
+        """Helper to check the client is currently connected"""
+        return VOICE_CLIENT and VOICE_CLIENT.is_connected()
 
     @commands.command(aliases=["q", "playlist", "list"])
     async def queue(self, ctx: commands.Context):
@@ -73,7 +77,7 @@ class MusicCommands(commands.Cog):
         )
         await ctx.send(
             embed=discord.Embed(
-                title="{playlist_name} Playlist", description=f">>> {list_items}"
+                title=f"{playlist_name} Playlist", description=f">>> {list_items}"
             )
         )
 
@@ -82,10 +86,10 @@ class MusicCommands(commands.Cog):
         """Stop playing and disconnect"""
         global PLAYLIST, VOICE_CLIENT
         PLAYLIST = []
-        if not await self.is_playing():
+        if not (await self.is_playing()):
             await ctx.send("Not currently playing anything.")
             return
-        VOICE_CLIENT.stop()
+        await VOICE_CLIENT.stop()
         await VOICE_CLIENT.disconnect()
         VOICE_CLIENT = None
         await ctx.send("Stopped playback and disconnected from voice channel.")
@@ -122,7 +126,7 @@ class MusicCommands(commands.Cog):
                 f"Song nr {element + 1} does not exist and can not be moved!"
             )
             return
-        # if only argument is given, we want to switch with the first song
+        # if only one argument is given, we want to switch with the first song
         if len(args) == 1:
             PLAYLIST.insert(0, PLAYLIST.pop(args[0]))
             await ctx.send(f"Moved {PLAYLIST[0][KEY_TITLE]} to top of the playlist! 🏎💨")
@@ -208,7 +212,7 @@ class MusicCommands(commands.Cog):
             VOICE_CLIENT = None
             return
         if VOICE_CLIENT is None:
-            self.connect_voice_client(ctx)
+            await self.connect_voice_client(ctx)
         song = PLAYLIST.pop(0)
         async with ctx.typing():
             try:
@@ -231,11 +235,10 @@ class MusicCommands(commands.Cog):
     async def connect_voice_client(self, ctx: commands.Context):
         """Connects to voice client if not already coinnected"""
         global VOICE_CLIENT
-        if VOICE_CLIENT and VOICE_CLIENT.is_connected():
+        if await self.voice_connected():
             return
         voice_channel = ctx.author.voice.channel
         VOICE_CLIENT = await voice_channel.connect()
-        # TODO fix case when voice is connected but voice_client is empty
         if not VOICE_CLIENT:
             raise VoiceClientException("Failed to connect to the voice channel")
 
@@ -244,10 +247,28 @@ class MusicCommands(commands.Cog):
         """
         Save the global variable PLAYLIST to a file in the 'playlists' folder.
         """
-        os.makedirs(PLAYLIST_FOLDER, exist_ok=True)
-        with open(f"{PLAYLIST_FOLDER}/{filename}", "w") as f:
+        with self.save_open(filename, "w") as f:
             json.dump(PLAYLIST, f)
-            await ctx.send(embed=discord.Embed(title="successfully saved {filename}"))
+            await ctx.send(
+                embed=discord.Embed(title=f"successfully saved {Path(f.name).stem}")
+            )
+
+    def save_open(self, filename: str, mode: str):
+        """
+        Method to safely open a file, makes sure that the PLAYLIST_FOLDER exists and then sanitizes the filename
+
+        |Mode|Meaning|
+        |:-|:-|
+        |'r'|open for reading (default)|
+        |'w'|open for writing, truncating the file first|
+        |'x'|create a new file and open it for writing|
+        |'a'|open for writing, appending to the end of the file if it exists|
+        |'b'|binary mode|
+        |'t'|text mode (default)|
+        |'+'|open a disk file for updating (reading and writing)|
+        """
+        os.makedirs(PLAYLIST_FOLDER, exist_ok=True)
+        return open(f"{PLAYLIST_FOLDER}/{sanitize_path(filename)}", mode)
 
     @commands.command(aliases=["playlists"])
     async def list_stored_playlists(self, ctx: commands.Context):
@@ -264,13 +285,13 @@ class MusicCommands(commands.Cog):
         Load the contents of a file in the 'playlists' folder into the global variable PLAYLIST.
         """
         global PLAYLIST
-        with open(f"{PLAYLIST_FOLDER}/{filename}", "r") as f:
+        with self.save_open(filename, "r") as f:
             playlist_temp: list[dict] = json.load(f)
             PLAYLIST = playlist_temp
             await self.queue(ctx)
         await self.play_next_song(ctx)
 
-    @commands.command(aliases=[])
+    @commands.command(aliases=["addtoplaylist"])
     async def add_song_to_stored_playlist(self, ctx: commands.Context, filename, songs):
         """
         Add one or multiple songs to a file in the 'playlists' folder.
@@ -317,7 +338,7 @@ class MusicCommands(commands.Cog):
         """
         Show the contents of a playlist file.
         """
-        with open(f"{PLAYLIST_FOLDER}/{filename}", "r") as f:
+        with self.save_open(filename, "r") as f:
             playlist: list[dict] = json.load(f.read())
             await self.render_playlist(ctx, filename, playlist)
 
@@ -328,11 +349,9 @@ class MusicCommands(commands.Cog):
         """
         playlists = os.listdir(PLAYLIST_FOLDER)
         for playlist in playlists:
-            with open(f"{PLAYLIST_FOLDER}/{playlist}", "r") as f:
+            with self.save_open(playlist, "r") as f:
                 playlist_temp: list[dict] = json.load(f)
-            playlist_temp = "\n".join(
-                [song.get(KEY_TITLE) for song in playlist_temp]
-            )
+            playlist_temp = "\n".join([song.get(KEY_TITLE) for song in playlist_temp])
             await ctx.send(
                 embed=discord.Embed(title=playlist, description=f"{playlist_temp}")
             )
@@ -344,7 +363,7 @@ class MusicCommands(commands.Cog):
         """
         playlists = os.listdir(PLAYLIST_FOLDER)
         for playlist in playlists:
-            with open(f"{PLAYLIST_FOLDER}/{playlist}", "r") as f:
+            with self.save_open(playlist, "r") as f:
                 await ctx.send(
                     embed=discord.Embed(
                         description=f"The length of {playlist} is {len(f.read().splitlines())}"
