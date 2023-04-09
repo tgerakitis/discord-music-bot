@@ -16,11 +16,12 @@
                 ]
             },
             "extensions": [
-                "ms-python.python",
-                "ms-python.black-formatter",
-                "EditorConfig.EditorConfig",
-                "ms-python.flake8"
-            ]
+				"ms-python.python",
+				"ms-python.black-formatter",
+				"EditorConfig.EditorConfig",
+				"ms-python.flake8",
+				"njpwerner.autodocstring"
+			]
         }
     },
     "containerEnv": {
