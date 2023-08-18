@@ -183,14 +183,17 @@ class MusicCommands(commands.Cog):
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
             stdout, stderr = await process.communicate()
-            title, url = stdout.decode().strip().split("\n")
-            title, thumbnail_url = title.split(THUMBNAILSPLITTER)
+            if (len(stdout) <= 0) or (len(stdout.decode().strip().split("\n")) < 2):
+                await ctx.send(f"🤷‍♀️ Something went wrong ❓N̴̪̾̈́̚Ȧ̴͖́͆N̴̥̏̽̎Ḯ̵̪̘̝⁉ looking for 😖 ... >>> {query} <<< ... 😭")
+                return
             if process.returncode != 0:
                 raise YoutubeException(
                     f"yt-dlp returned non-zero exit code {process.returncode}\n"
                     f"Message: {stdout.decode().strip()}\n"
                     f"Error: {stderr.decode().strip()}"
                 )
+            title, url = stdout.decode().strip().split("\n")
+            title, thumbnail_url = title.split(THUMBNAILSPLITTER)
             PLAYLIST.append(
                 {KEY_TITLE: title, KEY_URL: url, KEY_THUMBNAIL: thumbnail_url}
             )
@@ -198,7 +201,10 @@ class MusicCommands(commands.Cog):
                 thumbnail_url = ""
             await ctx.send(f"Queued {title}\n{thumbnail_url}")
         except YoutubeException as exception:
-            await ctx.send(f"Error: {str(exception)}")
+            await ctx.send(f"Youtube ❌ Error: {str(exception)}")
+            return
+        except BaseException as exception:
+            await ctx.send(f"Generic 🤡 Error: {str(exception)}")
             return
 
     async def play_next_song(self, ctx: commands.Context):
