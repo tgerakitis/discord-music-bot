@@ -177,14 +177,14 @@ class MusicCommands(commands.Cog):
         try:
             cmd = (
                 f'yt-dlp -f bestaudio -g "ytsearch:{query}"'
-                f' --print "%(title)s - %(duration>%H:%M:%S)s{THUMBNAILSPLITTER}%(thumbnail)s"'
+                f' '
             )
             process = await asyncio.create_subprocess_shell(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
             stdout, stderr = await process.communicate()
             if (len(stdout) <= 0) or (len(stdout.decode().strip().split("\n")) < 2):
-                await ctx.send(f"🤷‍♀️ Something went wrong ❓N̴̪̾̈́̚Ȧ̴͖́͆N̴̥̏̽̎Ḯ̵̪̘̝⁉ looking for 😖 ... >>> {query} <<< ... 😭")
+                await ctx.send(f"🤷‍♀️ 404 when looking for 😖 >>> {query} <<< ❓N̴̪̾̈́̚Ȧ̴͖́͆N̴̥̏̽̎Ḯ̵̪̘̝⁉ 😭 pls try another query")
                 return
             if process.returncode != 0:
                 raise YoutubeException(
