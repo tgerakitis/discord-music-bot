@@ -25,7 +25,7 @@ Run the following command to start the bot:
             # COMMAND_PREFIX: prefix of your choice, default is !
     ```
 
-2. Run `docker-compose up -d`.
+2. Run `docker compose up -d`.
 3. Make sure your bot has all relevant server roles to read your text channels and is allowed to join your voice channels.
 4. In chat, type `!play <song of your choice>`.
 
@@ -33,7 +33,7 @@ Run the following command to start the bot:
 
 1. Clone this repository.
 2. Copy the contents of [`.env-template`](.env-template) into a file called `.env` in the root and set your bot token.
-3. Run `docker-compose up --build` in the root directory to start the bot.
+3. Run `docker compose up --build` in the root directory to start the bot.
 4. Use the provided debugger settings for VS Code in [`.vscode/launch.json`](.vscode/launch.json).
 
 **Note**: For local development the default `COMMAND_PREFIX` is set to `!!`
