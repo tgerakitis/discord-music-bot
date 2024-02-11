@@ -183,7 +183,7 @@ class MusicCommands(commands.Cog):
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
             stdout, stderr = await process.communicate()
-            if (len(stdout) <= 0) or (len(stdout.decode().strip().split("\n")) < 2):
+            if (len(stdout) <= 0):
                 await ctx.send(f"🤷‍♀️ 404 when looking for 😖 >>> {query} <<< ❓N̴̪̾̈́̚Ȧ̴͖́͆N̴̥̏̽̎Ḯ̵̪̘̝⁉ 😭 pls try another query")
                 return
             if process.returncode != 0:
@@ -192,8 +192,13 @@ class MusicCommands(commands.Cog):
                     f"Message: {stdout.decode().strip()}\n"
                     f"Error: {stderr.decode().strip()}"
                 )
-            title, url = stdout.decode().strip().split("\n")
-            title, thumbnail_url = title.split(THUMBNAILSPLITTER)
+            if(len(stdout.decode().strip().split("\n")) >= 2):
+                title, url = stdout.decode().strip().split("\n")
+                title, thumbnail_url = title.split(THUMBNAILSPLITTER)
+            else:
+                title = query
+                url = stdout.decode().strip().split("\n")[0]
+                thumbnail_url = ""
             PLAYLIST.append(
                 {KEY_TITLE: title, KEY_URL: url, KEY_THUMBNAIL: thumbnail_url}
             )
