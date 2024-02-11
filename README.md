@@ -60,14 +60,12 @@ Run the following command to start the bot:
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and sign in to your account.
 2. Click the "New Application" button and give your application a name, then click "Create."
-3. Click the "Bot" tab on the left, then click "Add Bot."
-4. Click "Yes, do it!" to confirm adding a bot to your application.
-5. Copy the bot token by clicking "Copy" (you will need this later).
-6. Keep the bot token secure as anyone with access to it can control your bot.
-7. Enable the following:
+4. Click the "Bot" tab on the left, name the bot and copy the API token (reset token if you can not see this options)
+5. Keep the bot token secure as anyone with access to it can control your bot.
+6. Still in the "Bot" tab, scroll down and enable the following "Privileged Gateway Intents":
     - `PRESENCE INTENT`
     - `MESSAGE CONTENT INTENT`
-8. Save the changes.
+6. Save the changes if not saved automatically.
 9. Go to Oauth2 > URL Generator and select the `bot` scope.
 10. Select the following bot permissions:
     - `GENERAL PERMISSIONS`: `Read Messages/View Channels`
