@@ -177,13 +177,13 @@ class MusicCommands(commands.Cog):
         try:
             cmd = (
                 f'yt-dlp -f bestaudio -g "ytsearch:{query}"'
-                f' '
+                f' --print "%(title)s - %(duration>%H:%M:%S)s{THUMBNAILSPLITTER}%(thumbnail)s"'
             )
             process = await asyncio.create_subprocess_shell(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
             stdout, stderr = await process.communicate()
-            if (len(stdout) <= 0):
+            if len(stdout) <= 0 or len(stdout.decode().strip().split("\n")) < 2:
                 await ctx.send(f"🤷‍♀️ 404 when looking for 😖 >>> {query} <<< ❓N̴̪̾̈́̚Ȧ̴͖́͆N̴̥̏̽̎Ḯ̵̪̘̝⁉ 😭 pls try another query")
                 return
             if process.returncode != 0:
@@ -192,13 +192,8 @@ class MusicCommands(commands.Cog):
                     f"Message: {stdout.decode().strip()}\n"
                     f"Error: {stderr.decode().strip()}"
                 )
-            if(len(stdout.decode().strip().split("\n")) >= 2):
-                title, url = stdout.decode().strip().split("\n")
-                title, thumbnail_url = title.split(THUMBNAILSPLITTER)
-            else:
-                title = query
-                url = stdout.decode().strip().split("\n")[0]
-                thumbnail_url = ""
+            title, url = stdout.decode().strip().split("\n")
+            title, thumbnail_url = title.split(THUMBNAILSPLITTER)
             PLAYLIST.append(
                 {KEY_TITLE: title, KEY_URL: url, KEY_THUMBNAIL: thumbnail_url}
             )
