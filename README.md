@@ -65,13 +65,13 @@ Run the following command to start the bot:
 6. Still in the "Bot" tab, scroll down and enable the following "Privileged Gateway Intents":
     - `PRESENCE INTENT`
     - `MESSAGE CONTENT INTENT`
-6. Save the changes if not saved automatically.
-9. Go to Oauth2 > URL Generator and select the `bot` scope.
-10. Select the following bot permissions:
+7. Save the changes if not saved automatically.
+8. Go to Oauth2 > URL Generator and select the `bot` scope.
+9. Select the following bot permissions:
     - `GENERAL PERMISSIONS`: `Read Messages/View Channels`
     - `TEXT PERMISSIONS`: `Send Messages`
     - `VOICE PERMISSIONS`: `Connect`
     - `VOICE PERMISSIONS`: `Speak`
-11. Follow the generated invite link to add the bot to your Discord server.
+10. Follow the generated invite link to add the bot to your Discord server.
 
 Enjoy! 🤖
