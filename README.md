@@ -3,21 +3,23 @@
 A simple Discord music bot with basic functionality. Please note that this bot may have bugs and has not been extensively tested.
 
 ## Installation
-1a. Run the following command to start the bot: `docker run -d -e DISCORD_BOT_TOKEN=<discord bot token> tgerakitis/discord-music-bot`
-1b. Copy the example `docker-compose.yml` file and set your bot token:
-
-    ```
-    version: '3'
-    services:
-      discord-music-bot:
-        image: tgerakitis/discord-music-bot
-        restart: always
-        environment:
-            DISCORD_BOT_TOKEN: <discord bot token>
-            # COMMAND_PREFIX: prefix of your choice, default is !
-    ```
-
-2b. Run `docker compose up -d`.
+1. Run the container
+    - Docker only:
+        - Run the following command to start the bot: 
+            <br>`docker run -d -e DISCORD_BOT_TOKEN=<discord bot token> tgerakitis/discord-music-bot`
+    - Docker Compose:
+        - Copy the example `docker-compose.yml` file and set your bot token:
+            ```
+            version: '3'
+            services:
+              discord-music-bot:
+                image: tgerakitis/discord-music-bot
+                restart: always
+                environment:
+                    DISCORD_BOT_TOKEN: <discord bot token>
+                    # COMMAND_PREFIX: prefix of your choice, default is !
+            ```
+        - Run `docker compose up -d`.
 3. Make sure your bot has all relevant server roles to read your text channels and is allowed to join your voice channels.
 4. In chat, type `!play <song of your choice>`.
 
