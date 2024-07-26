@@ -176,7 +176,7 @@ class MusicCommands(commands.Cog):
         """Adds a song to current playlist"""
         try:
             cmd = (
-                f'yt-dlp -f bestaudio -g "ytsearch:{query}"'
+                f'yt-dlp -f bestaudio --cookies /cookies.txt -g "ytsearch:{query}"'
                 f' --print "%(title)s - %(duration>%H:%M:%S)s{THUMBNAILSPLITTER}%(thumbnail)s"'
             )
             process = await asyncio.create_subprocess_shell(
