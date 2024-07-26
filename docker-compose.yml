@@ -2,11 +2,12 @@ version: "3"
 services:
   discord-music-bot:
     build:
-
       context: .
     environment:
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:?no DISCORD_BOT_TOKEN set}
       COMMAND_PREFIX: ${COMMAND_PREFIX:-!!}
+      YOUTUBE_USERNAME: ${YOUTUBE_USERNAME:?no YOUTUBE_USERNAME set}
+      YOUTUBE_PASSWORD: ${YOUTUBE_PASSWORD:?no YOUTUBE_PASSWORD set}
     volumes:
       - "./:/workspace"
     command: ["debugpy"]
