@@ -1,5 +1,4 @@
 """Commands for music playback"""
-
 import json
 import os
 import random
@@ -130,9 +129,7 @@ class MusicCommands(commands.Cog):
         # if only one argument is given, we want to switch with the first song
         if len(args) == 1:
             PLAYLIST.insert(0, PLAYLIST.pop(args[0]))
-            await ctx.send(
-                f"Moved {PLAYLIST[0][KEY_TITLE]} to top of the playlist! 🏎💨"
-            )
+            await ctx.send(f"Moved {PLAYLIST[0][KEY_TITLE]} to top of the playlist! 🏎💨")
             await self.queue(ctx)
             return
         pos1, pos2 = args
@@ -179,8 +176,7 @@ class MusicCommands(commands.Cog):
         """Adds a song to current playlist"""
         try:
             cmd = (
-                f'yt-dlp -f bestaudio -u="{os.getenv("YOUTUBE_USERNAME")}" -p="{os.getenv("YOUTUBE_PASSWORD")}"'
-                f' -g "ytsearch:{query}"'
+                f'yt-dlp -f bestaudio -g "ytsearch:{query}"'
                 f' --print "%(title)s - %(duration>%H:%M:%S)s{THUMBNAILSPLITTER}%(thumbnail)s"'
             )
             process = await asyncio.create_subprocess_shell(
@@ -188,11 +184,9 @@ class MusicCommands(commands.Cog):
             )
             stdout, stderr = await process.communicate()
             if len(stdout) <= 0 or len(stdout.decode().strip().split("\n")) < 2:
-                await ctx.send(
-                    f"🤷‍♀️ 404 when looking for 😖 >>> {query} <<< ❓N̴̪̾̈́̚Ȧ̴͖́͆N̴̥̏̽̎Ḯ̵̪̘̝⁉ 😭 pls try another query"
-                )
+                await ctx.send(f"🤷‍♀️ 404 when looking for 😖 >>> {query} <<< ❓N̴̪̾̈́̚Ȧ̴͖́͆N̴̥̏̽̎Ḯ̵̪̘̝⁉ 😭 pls try another query")
                 raise YoutubeException(
-                    f"yt-dlp returned something strange\n"
+                    f"yt-dlp returned something strange"
                     f"Message: {stdout.decode().strip()}\n"
                     f"Error: {stderr.decode().strip()}"
                 )
