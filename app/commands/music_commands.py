@@ -185,6 +185,11 @@ class MusicCommands(commands.Cog):
             stdout, stderr = await process.communicate()
             if len(stdout) <= 0 or len(stdout.decode().strip().split("\n")) < 2:
                 await ctx.send(f"🤷‍♀️ 404 when looking for 😖 >>> {query} <<< ❓N̴̪̾̈́̚Ȧ̴͖́͆N̴̥̏̽̎Ḯ̵̪̘̝⁉ 😭 pls try another query")
+                raise YoutubeException(
+                    f"yt-dlp returned something strange"
+                    f"Message: {stdout.decode().strip()}\n"
+                    f"Error: {stderr.decode().strip()}"
+                )
                 return
             if process.returncode != 0:
                 raise YoutubeException(
